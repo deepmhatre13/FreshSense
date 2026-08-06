@@ -1,0 +1,61 @@
+name: Python CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Verify Python syntax
+      run: |
+        python -m py_compile configs/config.py
+        python -m py_compile src/main.py
+        python -m py_compile src/models/efficientnet.py
+        python -m py_compile src/preprocessing/augmentation.py
+        python -m py_compile src/preprocessing/dataset.py
+        python -m py_compile src/preprocessing/preprocess.py
+        python -m py_compile src/preprocessing/quality.py
+        python -m py_compile src/training/trainer.py
+        python -m py_compile src/training/evaluate.py
+        python -m py_compile src/training/losses.py
+        python -m py_compile src/utils/logger.py
+        python -m py_compile src/utils/metrics.py
+        python -m py_compile src/utils/visualization.py
+        python -m py_compile src/inference/predict.py
+
+    - name: Test basic imports
+      run: |
+        python -c "import torch; import albumentations; import cv2; import sklearn; print('All core imports successful')"
+        python -c "from configs.config import Config; print('Config imports OK')"
+        python -c "from src.models.efficientnet import FreshSenseEfficientNet; print('Model imports OK')"
+        python -c "from src.training.trainer import Trainer; print('Trainer imports OK')"
+        python -c "from src.inference.predict import Predictor; print('Predictor imports OK')"
+
+    - name: Check for debug code patterns
+      run: |
+        echo "Checking for debug code patterns..."
+        ! grep -r "print(" --include="*.py" src/ configs/ || true
+        ! grep -r "pdb.set_trace" --include="*.py" src/ configs/ || true
+        ! grep -r "import pdb" --include="*.py" src/ configs/ || true
+        echo "No debug code found"

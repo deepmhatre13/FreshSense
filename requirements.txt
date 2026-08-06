@@ -1,0 +1,28 @@
+# FreshSense AI - Phase 1 dependencies
+# Python >= 3.10, tested on 3.12
+# Generated for Phase 1: Fresh/Stale/Rotten classification with EfficientNet-B0
+# Versions pinned to the known-good, dependency-resolved set.
+#
+# Albumentations 2.0.8 requires albucore==0.0.24 (pinned internally). Newer
+# albucore versions (>=0.1.0) pull in `numkong`, whose Windows wheel fails
+# with "DLL load failed while importing _numkong". albucore 0.0.24 works with
+# albumentations 2.0.8 and has no such dependency.
+
+# Core ML
+torch==2.13.0
+torchvision==0.28.0
+
+# Image processing
+opencv-python==5.0.0
+albumentations==2.0.8
+albucore==0.0.24
+numpy==2.2.6
+
+# Metrics
+scikit-learn==1.6.1
+
+# Utilities
+tqdm==4.68.3
+pyyaml==6.0.3
+matplotlib==3.11.0
+torchinfo==1.8.0

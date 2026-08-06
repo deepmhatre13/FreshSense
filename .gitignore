@@ -1,0 +1,69 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Checkpoints
+models/checkpoints/*.pth
+models/checkpoints/*.pt
+models/checkpoints/*.onnx
+
+# Evaluation
+models/evaluation/
+
+# Tensorboard
+runs/
+
+# Datasets
+data/
+sample_data/
+
+# Google Colab
+.ipynb_checkpoints/
+
+# pytest
+.pytest_cache/
+
+# ruff
+.ruff_cache/
+
+# mypy
+.mypy_cache/
+
+# coverage
+.coverage
+htmlcov/
+
+# Temporary
+tmp/
+temp/
+
+# Build
+dist/
+build/
+
+# GitHub
+.env
+.env.*
+
+# Secrets
+*.pem
+*.key

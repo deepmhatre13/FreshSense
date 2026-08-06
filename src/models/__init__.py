@@ -1,0 +1,1 @@
+"""FreshSense AI - Model definitions."""
