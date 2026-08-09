@@ -1,15 +1,17 @@
 # ============================================================
-# FreshSense AI
-# Phase 1 + Phase 2
+# FreshSense AI — CPU-only requirements
 # Python 3.12
-# Tested on Google Colab (CUDA 12.8)
+# Use this file on Windows / Linux without a GPU.
 # ============================================================
-
-# -------------------------
-# Deep Learning
-# -------------------------
-torch==2.11.0
-torchvision==0.26.0
+#
+# Install:
+#   pip install -r requirements-cpu.txt
+#
+# PyTorch CPU wheel (no CUDA):
+#   pip install torch==2.11.0 torchvision==0.26.0 \
+#       --index-url https://download.pytorch.org/whl/cpu
+#
+# Then install the rest of the deps from this file.
 
 # -------------------------
 # Computer Vision
@@ -69,3 +71,9 @@ typing_extensions>=4.12.0
 # Model Summary
 # -------------------------
 torchinfo==1.8.0
+
+# -------------------------
+# Testing
+# -------------------------
+pytest>=8.0.0
+pytest-mock>=3.12.0

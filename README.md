@@ -270,8 +270,8 @@ Exit code `0` on success, `1` on failure, `130` on Ctrl+C.
 | Phase | Status | Description |
 |-------|--------|-------------|
 | **Phase 1** | ✅ Complete | Training Pipeline |
-| **Phase 2** | 📋 Planned | Real-time Webcam |
-| **Phase 3** | 📋 Planned | YOLO Detection |
+| **Phase 2** | ✅ Complete | Real-time Webcam |
+| **Phase 3** | ✅ Complete | Production Stabilization & Quality |
 | **Phase 4** | 📋 Planned | LangGraph AI |
 | **Phase 5** | 📋 Planned | FastAPI Backend |
 | **Phase 6** | 📋 Planned | React Dashboard |
@@ -321,3 +321,55 @@ For questions, issues, or contributions:
 ---
 
 **Status**: Phase 1 Production-Ready | **Version**: 0.1.0
+
+## Phase 3: Production-Grade Real-Time Vision Pipeline
+
+### Overview
+
+Phase 3 transforms the Phase 2 webcam inference pipeline into a stable, production-quality computer vision system. The focus is on prediction stabilization, quality assessment, and comprehensive logging -- not on improving the neural network itself.
+
+### New Modules
+
+| Module | File | Description |
+|--------|------|-------------|
+| **Stabilizer** | `src/inference/stabilizer.py` | Temporal prediction stabilization with EMA, majority voting, and prediction locking |
+| **Quality** | `src/inference/quality.py` | Image quality assessment (brightness, contrast, blur, motion) |
+| **Statistics** | `src/inference/statistics.py` | Session statistics tracking and CSV/JSON logging |
+
+### Key Features
+
+#### 1. Temporal Prediction Stabilization
+
+- **EMA (Exponential Moving Average)**: Smooths confidence values with configurable alpha (default: 0.2)
+- **Majority Voting**: Uses sliding window of last N predictions (default: 15 frames)
+- **Prediction Locking**: Requires consecutive conflicting predictions before class switch (default: 5 frames)
+
+#### 2. Image Quality Assessment
+
+- **Brightness Detection**: Warns if too dark (< 40) or too bright (> 220)
+- **Contrast Estimation**: Detects low contrast images
+- **Blur Detection**: Laplacian variance for blur estimation (threshold: 100)
+- **Motion Detection**: Frame-difference estimation; skips inference if fruit is moving
+
+#### 3. Confidence Threshold
+
+- Configurable minimum confidence (default: 70%)
+- Displays "Uncertain" when below threshold
+- Prevents unreliable predictions from being displayed
+
+#### 4. Session Logging
+
+- CSV logs with timestamp, prediction, confidence, FPS, latency, brightness, blur, warnings
+- JSON summary on session exit
+- Automatic log directory creation (`logs/session/`)
+
+### Configuration
+
+All Phase 3 parameters are in `configs/settings.yaml` under the `inference` section.
+
+### Usage
+
+```bash
+# Phase 3 pipeline
+python -m src.inference.pipeline
+```

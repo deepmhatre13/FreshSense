@@ -1,20 +1,25 @@
 # ============================================================
-# FreshSense AI
-# Phase 1 + Phase 2
-# Python 3.12
-# Tested on Google Colab (CUDA 12.8)
+# FreshSense AI — Google Colab requirements
+# Python 3.12  |  Colab CUDA 12.8
 # ============================================================
+#
+# Colab already ships torch / torchvision / CUDA.
+# Run the following in a Colab cell BEFORE installing this file:
+#
+#   # (optional) upgrade torch if Colab's default is older
+#   # !pip install torch==2.11.0 torchvision==0.26.0 \
+#   #     --index-url https://download.pytorch.org/whl/cu128
+#
+#   # Install project deps
+#   # !pip install -r requirements-colab.txt
+#
+# Note: opencv-python-headless is used instead of opencv-python
+# because Colab does not have a display server.
 
 # -------------------------
-# Deep Learning
+# Computer Vision (headless for Colab)
 # -------------------------
-torch==2.11.0
-torchvision==0.26.0
-
-# -------------------------
-# Computer Vision
-# -------------------------
-opencv-python==5.0.0.93
+opencv-python-headless==5.0.0.93
 
 # -------------------------
 # Image Augmentation
@@ -69,3 +74,9 @@ typing_extensions>=4.12.0
 # Model Summary
 # -------------------------
 torchinfo==1.8.0
+
+# -------------------------
+# Testing
+# -------------------------
+pytest>=8.0.0
+pytest-mock>=3.12.0

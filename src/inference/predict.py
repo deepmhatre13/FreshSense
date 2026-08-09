@@ -72,7 +72,7 @@ class Predictor:
         # Load the checkpoint first so we can recover class names if the
         # caller did not provide them (production best practice: the label
         # order lives with the model, not in external config).
-        checkpoint = torch.load(model_path, map_location=self.device)
+        checkpoint = torch.load(model_path, map_location=self.device, weights_only=False)
 
         if class_names is not None:
             self.class_names = list(class_names)

@@ -1,15 +1,15 @@
 # ============================================================
-# FreshSense AI
-# Phase 1 + Phase 2
-# Python 3.12
-# Tested on Google Colab (CUDA 12.8)
+# FreshSense AI — GPU (CUDA) requirements
+# Python 3.12  |  CUDA 12.x
+# Use this file on a machine with an NVIDIA GPU + CUDA toolkit.
 # ============================================================
-
-# -------------------------
-# Deep Learning
-# -------------------------
-torch==2.11.0
-torchvision==0.26.0
+#
+# Install PyTorch with CUDA 12.8:
+#   pip install torch==2.11.0 torchvision==0.26.0 \
+#       --index-url https://download.pytorch.org/whl/cu128
+#
+# Then:
+#   pip install -r requirements-gpu.txt
 
 # -------------------------
 # Computer Vision
@@ -69,3 +69,9 @@ typing_extensions>=4.12.0
 # Model Summary
 # -------------------------
 torchinfo==1.8.0
+
+# -------------------------
+# Testing
+# -------------------------
+pytest>=8.0.0
+pytest-mock>=3.12.0

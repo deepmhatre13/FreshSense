@@ -1,6 +1,5 @@
-# FreshSense AI - Phase 1 Configuration
+﻿# FreshSense AI - Phase 1 + Phase 3 Configuration
 # This file is the human-readable source of truth.
-# It is loaded by Config.from_yaml() in configs/config.py.
 
 project_name: "FreshSense AI"
 random_seed: 42
@@ -45,3 +44,39 @@ training:
   resume_from: null
   unfreeze_epoch: 10
   warmup_epochs: 0
+
+# Phase 3 Real-time inference settings
+inference:
+  ema_alpha: 0.2
+  vote_window: 15
+  lock_frames: 5
+  stabilizer_confidence_threshold: 0.70
+  brightness_min: 40
+  brightness_max: 220
+  blur_threshold: 100.0
+  contrast_min: 20.0
+  motion_threshold: 35.0
+  use_motion_detection: true
+  save_logs: true
+  session_log_dir: "logs/session"
+
+# Phase 4 Object detection settings
+detection:
+  detector_backend: "yolo"
+  detector_weights: "yolo11n.pt"
+  detection_confidence: 0.45
+  detection_iou: 0.45
+  max_detections: 20
+  crop_expand_scale: 0.08
+  crop_min_side: 32
+  crop_min_area: 1024
+  crop_target_size: 224
+  tracker_iou_threshold: 0.3
+  tracker_max_distance: 120.0
+  tracker_max_lost_frames: 15
+  detection_weight: 0.4
+  classification_weight: 0.6
+  classify_every_n_frames: 3
+  fresh_bonus: 0.5
+  gradcam_enabled: false
+  quality_warning: true

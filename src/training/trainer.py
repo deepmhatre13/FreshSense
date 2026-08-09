@@ -297,17 +297,24 @@ class Trainer:
         num_val = len(self.val_loader.dataset)
 
         return {
+            # Versioning
+            "checkpoint_version": 2,
+            "architecture_version": "EfficientNet-B0-v2",
+            "classifier_type": "1280-256-6",
+            # Core training state
             "epoch": epoch,
             "model_state_dict": self.model.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),
             "scheduler_state_dict": self.scheduler.state_dict() if self.scheduler else None,
             "scaler_state_dict": self.scaler.state_dict(),
+            # Metrics
             "val_loss": val_loss,
             "val_acc": val_acc,
             "best_val_loss": self.history.best_val_loss,
             "best_val_acc": self.history.best_val_acc,
             "best_epoch": self.history.best_epoch,
             "patience_counter": self.patience_counter,
+            # Metadata
             "class_names": self.class_names,
             "num_classes": len(self.class_names),
             "dataset_stats": {
@@ -317,6 +324,7 @@ class Trainer:
             "config_dict": self.config.to_dict() if self.config else {},
             "git_hash": git_hash,
             "training_date": __import__("datetime").datetime.now().isoformat(),
+            "model_version": f"v{__import__('datetime').datetime.now().strftime('%Y%m%d')}",
             "torch_version": torch.__version__,
             "torchvision_version": torchvision.__version__,
             "python_version": platform.python_version(),
@@ -371,7 +379,7 @@ class Trainer:
         if not checkpoint_path.exists():
             raise FileNotFoundError(f"Resume checkpoint not found: {checkpoint_path}")
 
-        checkpoint = torch.load(checkpoint_path, map_location=self.device)
+        checkpoint = torch.load(checkpoint_path, map_location=self.device, weights_only=False)
 
         self.model.load_state_dict(checkpoint["model_state_dict"])
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
@@ -503,7 +511,7 @@ class Trainer:
 
         # Load the best model back so evaluation uses the best weights.
         if self.best_model_path.exists():
-            best_checkpoint = torch.load(self.best_model_path, map_location=self.device)
+            best_checkpoint = torch.load(self.best_model_path, map_location=self.device, weights_only=False)
             self.model.load_state_dict(best_checkpoint["model_state_dict"])
             logger.info(
                 "Loaded best model from epoch %d (val_loss %.4f, val_acc %.2f%%)",

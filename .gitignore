@@ -4,6 +4,9 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Models metrics output
+models/metrics/
+
 # Virtual environments
 venv/
 .venv/
@@ -33,7 +36,7 @@ models/evaluation/
 runs/
 
 # Datasets
-data/
+/data/
 sample_data/
 
 # Google Colab
@@ -67,3 +70,40 @@ build/
 # Secrets
 *.pem
 *.key
+*.p12
+*.pfx
+
+# Editor backup files
+*.swp
+*.swo
+*~
+*.bak
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# TypeScript compiled files (if any)
+*.js.map
+*.d.ts
+
+# Package lock files (if using yarn)
+yarn.lock
+
+# Local configuration
+.env.local
+.env.*.local
+
+# Captured frames (runtime artifacts)
+captured_frames/
+
+# Documentation build
+docs/_build/
+site/
+
+# Profiling
+*.prof
+*.lprof
+
+# Benchmark results
+benchmark_results/
