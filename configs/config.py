@@ -225,6 +225,51 @@ class InferenceConfig:
 
 
 @dataclass(frozen=True)
+class DetectionDatasetConfig:
+    """Roboflow detection dataset configuration.
+
+    Attributes:
+        roboflow_workspace: Roboflow workspace name.
+        roboflow_project: Roboflow project name.
+        roboflow_version: Dataset version number.
+        detection_data_dir: Local directory for detection dataset.
+        detector_model: Base YOLO model for training.
+        detector_epochs: Number of training epochs.
+        detector_batch: Training batch size.
+        detector_imgsz: Training image size.
+        detector_output_dir: Output directory for trained models.
+        detector_device: Device for training ("cuda", "cpu", "auto").
+        detector_workers: Number of data loader workers.
+        detector_patience: Early stopping patience.
+    """
+
+    roboflow_workspace: str = "smartfresh-ai"
+    roboflow_project: str = "fruits-test"
+    roboflow_version: int = 1
+    detection_data_dir: Path = field(default_factory=lambda: Path("data/detection"))
+    detector_model: str = "yolo11n.pt"
+    detector_epochs: int = 50
+    detector_batch: int = 16
+    detector_imgsz: int = 640
+    detector_output_dir: Path = field(default_factory=lambda: Path("models/detection"))
+    detector_device: str = "auto"
+    detector_workers: int = 4
+    detector_patience: int = 10
+
+    def __post_init__(self) -> None:
+        if self.roboflow_version <= 0:
+            raise ValueError("roboflow_version must be positive.")
+        if self.detector_epochs <= 0:
+            raise ValueError("detector_epochs must be positive.")
+        if self.detector_batch <= 0:
+            raise ValueError("detector_batch must be positive.")
+        if self.detector_imgsz <= 0:
+            raise ValueError("detector_imgsz must be positive.")
+        if self.detector_patience <= 0:
+            raise ValueError("detector_patience must be positive.")
+
+
+@dataclass(frozen=True)
 class DetectionConfig:
     """Phase 4 object detection settings."""
 
@@ -287,6 +332,7 @@ class Config:
     training: TrainingConfig = field(default_factory=TrainingConfig)
     inference: InferenceConfig = field(default_factory=InferenceConfig)
     detection: DetectionConfig = field(default_factory=DetectionConfig)
+    detection_dataset: DetectionDatasetConfig = field(default_factory=DetectionDatasetConfig)
 
     @property
     def device(self) -> torch.device:
@@ -394,6 +440,20 @@ class Config:
                 "gradcam_enabled": self.detection.gradcam_enabled,
                 "quality_warning": self.detection.quality_warning,
             },
+            "detection_dataset": {
+                "roboflow_workspace": self.detection_dataset.roboflow_workspace,
+                "roboflow_project": self.detection_dataset.roboflow_project,
+                "roboflow_version": self.detection_dataset.roboflow_version,
+                "detection_data_dir": str(self.detection_dataset.detection_data_dir),
+                "detector_model": self.detection_dataset.detector_model,
+                "detector_epochs": self.detection_dataset.detector_epochs,
+                "detector_batch": self.detection_dataset.detector_batch,
+                "detector_imgsz": self.detection_dataset.detector_imgsz,
+                "detector_output_dir": str(self.detection_dataset.detector_output_dir),
+                "detector_device": self.detection_dataset.detector_device,
+                "detector_workers": self.detection_dataset.detector_workers,
+                "detector_patience": self.detection_dataset.detector_patience,
+            },
         }
 
     @classmethod
@@ -415,6 +475,7 @@ class Config:
             training=TrainingConfig(**training),
             inference=InferenceConfig(**inference),
             detection=DetectionConfig(**raw.get("detection", {})),
+            detection_dataset=DetectionDatasetConfig(**raw.get("detection_dataset", {})),
         )
 
     def save_yaml(self, path: Path | str) -> None:

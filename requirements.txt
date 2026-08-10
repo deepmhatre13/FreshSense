@@ -54,6 +54,9 @@ tqdm==4.67.1
 PyYAML==6.0.3
 
 # -------------------------
+# Environment Loading
+python-dotenv==1.0.0
+
 # Data Validation
 # -------------------------
 pydantic==2.11.7

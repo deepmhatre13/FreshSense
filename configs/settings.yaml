@@ -1,4 +1,4 @@
-﻿# FreshSense AI - Phase 1 + Phase 3 Configuration
+# FreshSense AI - Phase 1 + Phase 3 Configuration
 # This file is the human-readable source of truth.
 
 project_name: "FreshSense AI"
@@ -80,3 +80,16 @@ detection:
   fresh_bonus: 0.5
   gradcam_enabled: false
   quality_warning: true
+detection_dataset:
+  roboflow_workspace: smartfresh-ai
+  roboflow_project: fruits-test
+  roboflow_version: 1
+  detection_data_dir: data/detection
+  detector_model: yolo11n.pt
+  detector_epochs: 50
+  detector_batch: 16
+  detector_imgsz: 640
+  detector_output_dir: models/detection
+  detector_device: auto
+  detector_workers: 4
+  detector_patience: 10
