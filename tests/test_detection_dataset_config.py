@@ -7,8 +7,8 @@ from configs.config import DetectionDatasetConfig, Config
 class TestDetectionDatasetConfig:
     def test_defaults(self):
         config = DetectionDatasetConfig()
-        assert config.roboflow_workspace == "smartfresh-ai"
-        assert config.roboflow_project == "fruits-test"
+        assert config.roboflow_workspace == "deepam-mhatre"
+        assert config.roboflow_project == "fruits-test-ajvf8-duncc"
         assert config.roboflow_version == 1
         assert config.detector_model == "yolo11n.pt"
         assert config.detector_epochs == 50
@@ -40,4 +40,5 @@ class TestConfigIntegration:
 
     def test_config_from_yaml_with_detection_dataset(self):
         config = Config.from_yaml("configs/settings.yaml")
-        assert config.detection_dataset.roboflow_workspace == "smartfresh-ai"
+        assert config.detection_dataset.roboflow_workspace == "deepam-mhatre"
+        assert config.detection_dataset.roboflow_project == "fruits-test-ajvf8-duncc"

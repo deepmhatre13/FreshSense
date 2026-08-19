@@ -81,8 +81,8 @@ detection:
   gradcam_enabled: false
   quality_warning: true
 detection_dataset:
-  roboflow_workspace: smartfresh-ai
-  roboflow_project: fruits-test
+  roboflow_workspace: deepam-mhatre
+  roboflow_project: fruits-test-ajvf8-duncc
   roboflow_version: 1
   detection_data_dir: data/detection
   detector_model: yolo11n.pt

@@ -92,3 +92,60 @@ class TestDetectionPipelineIntegration:
         detector = YOLODetector(cfg, weight_name="yolo11n.pt")
         assert detector.weight_name == "yolo11n.pt"
 
+    def test_pipeline_unsupported_fruit_does_not_fabricate_freshness(self):
+        """An unsupported fruit should explicitly report unknown freshness."""
+        pipe = DetectionPipeline(
+            DetectionPipelineConfig(detector_name="mock"),
+            predictor=None,
+        )
+        pipe.initialize()
+        
+        frame = np.random.randint(100, 150, (480, 640, 3), dtype=np.uint8)
+        frame[100:300, 100:300] = 128
+        
+        # Grape is not supported by freshness classifier
+        det = Detection(
+            label="grape",
+            confidence=0.9,
+            bbox=BoundingBox(100, 100, 300, 300),
+            timestamp=0.0,
+        )
+        pipe.detector._detections = [det]
+        
+        result = pipe.process_frame(frame)
+        assert len(result.fruits) == 1
+        fruit_res = result.fruits[0]
+        
+        assert fruit_res.detection.label == "grape"
+        assert fruit_res.freshness_class == "unknown"
+
+    def test_pipeline_supported_fruit_missing_metadata(self):
+        """A supported fruit with no metadata should flag shelf-life as unavailable or heuristic."""
+        # Note: metadata is loaded from fruit_database.json which we created,
+        # but let's clear the metadata db to simulate missing
+        pipe = DetectionPipeline(
+            DetectionPipelineConfig(detector_name="mock"),
+            predictor=None,
+        )
+        pipe.initialize()
+        pipe.shelf_life.metadata_db._metadata.clear()  # Force empty metadata
+        
+        frame = np.random.randint(100, 150, (480, 640, 3), dtype=np.uint8)
+        frame[100:300, 100:300] = 128
+        
+        # Apple is supported by freshness classifier
+        det = Detection(
+            label="apple",
+            confidence=0.9,
+            bbox=BoundingBox(100, 100, 300, 300),
+            timestamp=0.0,
+        )
+        pipe.detector._detections = [det]
+        
+        result = pipe.process_frame(frame)
+        assert len(result.fruits) == 1
+        fruit_res = result.fruits[0]
+        
+        assert fruit_res.detection.label == "apple"
+        assert fruit_res.shelf_life.basis_type in ("unavailable", "heuristic")
+

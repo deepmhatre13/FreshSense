@@ -72,3 +72,9 @@ typing_extensions>=4.12.0
 # Model Summary
 # -------------------------
 torchinfo==1.8.0
+
+# -------------------------
+# Object Detection (Phase 4)
+# -------------------------
+roboflow==1.4.0
+ultralytics==8.4.117

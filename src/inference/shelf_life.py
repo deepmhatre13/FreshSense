@@ -1,4 +1,4 @@
-﻿"""Shelf-life estimation for FreshSense Phase 4.
+"""Shelf-life estimation for FreshSense Phase 4.
 
 Estimates remaining shelf life using fruit metadata combined with a freshness
 confidence heuristic. The closer to 100% fresh confidence, the closer to the
@@ -16,6 +16,8 @@ from src.inference.fruit_metadata import FruitMetadata, FruitMetadataDatabase
 logger = logging.getLogger(__name__)
 
 __all__ = ["ShelfLifeEstimator", "ShelfLifeConfig", "ShelfLifeEstimate"]
+
+from typing import Literal
 
 
 @dataclass(frozen=True)
@@ -40,6 +42,7 @@ class ShelfLifeEstimate:
         min_days: Estimated minimum remaining days.
         max_days: Estimated maximum remaining days.
         basis: Human-readable one-line summary.
+        basis_type: Distinctly expresses the basis of the estimate.
         metadata: The fruit metadata used (if any).
     """
 
@@ -47,6 +50,7 @@ class ShelfLifeEstimate:
     min_days: int
     max_days: int
     basis: str
+    basis_type: Literal["model", "metadata", "metadata_heuristic", "heuristic", "unavailable"]
     metadata: Optional[FruitMetadata] = None
 
     def to_range_string(self) -> str:
@@ -88,7 +92,20 @@ class ShelfLifeEstimator:
         """
         key = fruit.strip().lower()
         meta = self.metadata_db.get(key)
-        meta_range = meta.typical_shelf_life_days if meta else self.config.default_range
+        
+        if not meta:
+            # Missing metadata, returning unavailable. 
+            # We never silently use a heuristic or default without flagging it.
+            return ShelfLifeEstimate(
+                fruit=key,
+                min_days=0,
+                max_days=0,
+                basis="Metadata unavailable for shelf-life estimation",
+                basis_type="unavailable",
+                metadata=None,
+            )
+
+        meta_range = meta.typical_shelf_life_days
 
         # Confidence heuristic: fresh and high-confidence -> longer shelf life.
         confidence = max(0.0, min(1.0, fused_confidence))
@@ -99,6 +116,7 @@ class ShelfLifeEstimator:
                 min_days=0,
                 max_days=0,
                 basis="Not suitable for storage - consume immediately",
+                basis_type="metadata_heuristic",
                 metadata=meta,
             )
 
@@ -113,5 +131,6 @@ class ShelfLifeEstimator:
             min_days=remaining_min,
             max_days=remaining_max,
             basis=f"Estimated ~{remaining_min}-{remaining_max} days remaining",
+            basis_type="metadata_heuristic",
             metadata=meta,
         )

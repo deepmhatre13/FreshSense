@@ -34,6 +34,29 @@ from src.inference.predictor import Predictor
 # Freshness label vocabulary passed to each per-fruit stabilizer.
 FRESHNESS_CLASSES = ["fresh", "stale", "rotten"]
 
+# Fruits the current EfficientNet freshness classifier can actually grade.
+#
+# The YOLO detector recognises 10 fruit classes (the Roboflow dataset), but the
+# Phase-1 freshness classifier was trained on a different six-class taxonomy
+# (fresh/rotten x apple/banana/orange). Only these three fruits have a matching
+# freshness classifier. For any other detected fruit the pipeline reports a
+# freshness of ``"unknown"`` (``is_uncertain`` is set appropriately downstream)
+# rather than silently mapping it to the wrong freshness class.
+FRESHNESS_SUPPORTED_FRUITS = frozenset({"apple", "banana", "orange"})
+
+
+def freshness_supported(fruit: str) -> bool:
+    """Return whether ``fruit`` has a matching freshness classifier.
+
+    Args:
+        fruit: Detected fruit label (lower-cased internally).
+
+    Returns:
+        True if a dedicated freshness classifier exists for this fruit,
+        False otherwise (freshness will be reported as ``"unknown"``).
+    """
+    return (fruit or "").strip().lower() in FRESHNESS_SUPPORTED_FRUITS
+
 
 logger = logging.getLogger(__name__)
 
@@ -238,6 +261,13 @@ class DetectionPipeline:
         crop = crop_result.cropped
         stabilizer = self._get_stabilizer(det.tracking_id)
 
+        # Only grade freshness for fruit types the EfficientNet classifier was
+        # actually trained on. Unsupported detector classes (grape, kiwi, mango,
+        # strawberry, cherry, chickoo, guava) are reported as ``"unknown"`` and
+        # the freshness classifier is NEVER invoked on them, so their crops are
+        # never misclassified as a supported fruit.
+        supported = freshness_supported(det.label)
+
         # Adaptive classification: classify every N frames.
         self._classify_counter[det.tracking_id] += 1
         should_classify = (
@@ -246,7 +276,12 @@ class DetectionPipeline:
             == 0
         )
 
-        if should_classify and self.predictor is not None and crop is not None:
+        if (
+            supported
+            and should_classify
+            and self.predictor is not None
+            and crop is not None
+        ):
             result = self.predictor.predict(crop)
             freshness = result.freshness_class
             raw_conf = result.confidence
@@ -259,9 +294,11 @@ class DetectionPipeline:
                 model_version,
             )
         else:
-            # Reuse last classification (tracker fills the gap).
+            # Reuse last classification (tracker fills the gap) — but only for a
+            # fruit the classifier can grade. Unsupported fruits always report
+            # ``"unknown"`` and fall back to detector confidence for fusion.
             last = self._last_classifications.get(det.tracking_id)
-            if last is not None:
+            if supported and last is not None:
                 freshness, raw_conf, latency_ms, model_version = last
             else:
                 freshness = "unknown"

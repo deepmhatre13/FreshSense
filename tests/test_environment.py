@@ -37,25 +37,6 @@ class TestGetEnv:
         """Should exit when required variable is missing."""
     def test_sensitive_key_not_logged(self, caplog):
         """Should not log actual value of sensitive keys."""
-        import logging
-        os.environ["TEST_API_KEY"] = "secret_value_123"
-        load_environment()
-        caplog.set_level(logging.DEBUG)
-        get_env("TEST_API_KEY")
-        # Security check: secret value must never be logged
-    def test_sensitive_key_not_logged(self, caplog):
-        """Should not log actual value of sensitive keys."""
-        os.environ["TEST_API_KEY"] = "secret_value_123"
-        load_environment()
-        with caplog.at_level("DEBUG"):
-            get_env("TEST_API_KEY")
-        # Security check: secret value must never be logged
-        load_environment()
-        with pytest.raises(SystemExit):
-            require_env("NONEXISTENT_REQUIRED_VAR_12345")
-
-    def test_sensitive_key_not_logged(self, caplog):
-        """Should not log actual value of sensitive keys."""
         os.environ["TEST_API_KEY"] = "secret_value_123"
         load_environment()
         get_env("TEST_API_KEY")

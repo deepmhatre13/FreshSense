@@ -243,8 +243,8 @@ class DetectionDatasetConfig:
         detector_patience: Early stopping patience.
     """
 
-    roboflow_workspace: str = "smartfresh-ai"
-    roboflow_project: str = "fruits-test"
+    roboflow_workspace: str = "deepam-mhatre"
+    roboflow_project: str = "fruits-test-ajvf8-duncc"
     roboflow_version: int = 1
     detection_data_dir: Path = field(default_factory=lambda: Path("data/detection"))
     detector_model: str = "yolo11n.pt"

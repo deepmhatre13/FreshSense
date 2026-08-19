@@ -1,0 +1,33 @@
+# FreshSense AI - Phase 3 (V3 Dataset) Detection Training Configuration
+# ---------------------------------------------------------------------------
+# Controlled V3 training experiment. Major training settings are kept
+# comparable to the V2 baseline (configs/settings.yaml -> detection_dataset)
+# so that V3-vs-V2 results are a fair, like-for-like comparison.
+#
+# This config is ONLY consulted by scripts/train_detector_v3.py and is read
+# after the V3 review gate passes (see scripts/compare_detection_datasets.py:
+# "v3_not_available" blocks training). If data/detection_v3 does not exist,
+# the training wrapper will refuse to run rather than fall back silently.
+#
+# V2 baseline reference (frozen):
+#   model   yolo11n.pt   epochs 50   batch 16   imgsz 640   patience 10
+
+project_name: "FreshSense AI"
+random_seed: 42
+experiment: "detection_v3"
+
+detection_dataset:
+  roboflow_workspace: "deepam-mhatre"
+  roboflow_project: "fruits-test-ajvf8-duncc"
+  roboflow_version: 2
+  detection_data_dir: "data/detection_v3"   # V3 dataset (review-gated)
+  detector_model: "yolo11n.pt"               # same backbone as V2
+  detector_epochs: 50                        # same as V2
+  detector_batch: 16                         # same as V2
+  detector_imgsz: 640                        # same as V2
+  detector_output_dir: "models/detection/v3"  # versioned; never touches V2 best.pt
+  detector_weights: "yolo11n.pt"             # explicit base weights (NOT best.pt)
+  detector_device: "auto"
+  detector_workers: 4
+  detector_patience: 10                      # same as V2
+  seed: 42

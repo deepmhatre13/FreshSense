@@ -8,6 +8,11 @@ import logging
 import sys
 from pathlib import Path
 
+# Allow running directly (python scripts/<name>.py) from any CWD.
+_REPO_ROOT = str(Path(__file__).resolve().parents[1])
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
 from configs.config import Config
 from src.utils.environment import load_environment
 
@@ -29,8 +34,14 @@ def train_detector(
     workers: int = 4,
     patience: int = 10,
     resume: bool = False,
+    seed: int = 42,
 ) -> Path:
     """Train YOLO model and return path to best weights."""
+    # Normalize filesystem paths at the boundary so callers may pass either a
+    # str or a Path; every filesystem operation below is reliable.
+    data_yaml = Path(data_yaml)
+    output_dir = Path(output_dir)
+
     try:
         from ultralytics import YOLO
     except ImportError:
@@ -63,6 +74,7 @@ def train_detector(
         pretrained=True,
         verbose=True,
         resume=resume,
+        seed=seed,
     )
 
     run_dir = output_dir / "detector"
@@ -93,20 +105,22 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=None)
     parser.add_argument("--patience", type=int, default=None)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--seed", type=int, default=None)
     args = parser.parse_args()
 
     load_environment()
     config = Config.from_yaml("configs/settings.yaml")
 
-    data_yaml = args.data or (config.detection_dataset.detection_data_dir / "data.yaml")
+    data_yaml = args.data or (Path(config.detection_dataset.detection_data_dir) / "data.yaml")
     model_name = args.model or config.detection_dataset.detector_model
     epochs = args.epochs or config.detection_dataset.detector_epochs
     batch = args.batch or config.detection_dataset.detector_batch
     imgsz = args.imgsz or config.detection_dataset.detector_imgsz
-    output_dir = args.output or config.detection_dataset.detector_output_dir
+    output_dir = Path(args.output or config.detection_dataset.detector_output_dir)
     device = args.device or config.detection_dataset.detector_device
     workers = args.workers or config.detection_dataset.detector_workers
     patience = args.patience or config.detection_dataset.detector_patience
+    seed = args.seed or 42
 
     logger.info("=" * 70)
     logger.info("FreshSense AI - YOLO Detector Training")
@@ -123,6 +137,7 @@ def main() -> None:
         workers=workers,
         patience=patience,
         resume=args.resume,
+        seed=seed,
     )
 
     logger.info("=" * 70)

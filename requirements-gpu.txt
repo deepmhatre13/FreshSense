@@ -75,3 +75,9 @@ torchinfo==1.8.0
 # -------------------------
 pytest>=8.0.0
 pytest-mock>=3.12.0
+
+# -------------------------
+# Object Detection (Phase 4)
+# -------------------------
+roboflow==1.4.0
+ultralytics==8.4.117

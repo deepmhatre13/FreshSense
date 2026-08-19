@@ -1,4 +1,10 @@
-﻿"""Main inference pipeline orchestrator for FreshSense Phase 3.
+"""Main inference pipeline orchestrator for FreshSense Phase 3.
+
+.. deprecated:: Phase 4
+    This module is deprecated and represents the legacy classify-only pipeline.
+    It will be preserved for backward compatibility but is no longer the
+    canonical pipeline. Please use :mod:`src.inference.detection_pipeline`
+    for the Phase 4 detect-track-crop-classify-fuse architecture.
 
 This module provides the main pipeline that orchestrates real-time inference:
 
