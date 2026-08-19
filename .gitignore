@@ -29,6 +29,11 @@ models/checkpoints/*.pth
 models/checkpoints/*.pt
 models/checkpoints/*.onnx
 
+# Detection experiment checkpoints (trained .pt/.onnx artifacts are NOT
+# tracked; the frozen V2 baseline best.pt stays committable, so ONLY
+# models/detection/experiments/ is ignored).
+models/detection/experiments/
+
 # Evaluation
 models/evaluation/
 
