@@ -1,4 +1,4 @@
-﻿"""FreshSense Phase 4 - Object detection module.
+"""FreshSense Phase 4 - Object detection module.
 
 Structure:
     - base_detector.py : Abstract detector interface + data types
@@ -28,14 +28,19 @@ from src.detection.utils import (
 )
 from src.detection.visualizer import draw_detections, draw_box
 
-# Fruit/vegetable classes SmartFreshAI is built to recognise.
+# Frozen 10-class fruit vocabulary in canonical dataset index order:
+# 0: Apple, 1: Grape, 2: Kiwi, 3: Mango, 4: Orange, 5: Strawberry, 6: banana, 7: cherry, 8: chickoo, 9: guava
 SUPPORTED_CLASSES = [
-    "apple",
+    "Apple",
+    "Grape",
+    "Kiwi",
+    "Mango",
+    "Orange",
+    "Strawberry",
     "banana",
-    "orange",
-    "mango",
-    "tomato",
-    "potato",
+    "cherry",
+    "chickoo",
+    "guava",
 ]
 
 __all__ = [

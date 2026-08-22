@@ -78,24 +78,24 @@ class ShelfLifeEstimator:
         self,
         fruit: str,
         fused_confidence: float,
-        is_fresh: bool = True,
+        is_fresh: Optional[bool] = None,
+        freshness_class: str = "fresh",
     ) -> ShelfLifeEstimate:
         """Estimate remaining shelf life.
 
         Args:
             fruit: Lower-case fruit name.
             fused_confidence: Fused detector+classifier confidence (0.0-1.0).
-            is_fresh: Whether the fruit is classified as fresh.
+            is_fresh: Legacy flag for whether fruit is fresh (overridden if freshness_class provided).
+            freshness_class: Freshness class string ("fresh", "stale", "rotten", "unsupported", "unknown").
 
         Returns:
             A ShelfLifeEstimate.
         """
         key = fruit.strip().lower()
         meta = self.metadata_db.get(key)
-        
+
         if not meta:
-            # Missing metadata, returning unavailable. 
-            # We never silently use a heuristic or default without flagging it.
             return ShelfLifeEstimate(
                 fruit=key,
                 min_days=0,
@@ -105,17 +105,28 @@ class ShelfLifeEstimator:
                 metadata=None,
             )
 
-        meta_range = meta.typical_shelf_life_days
+        # Map legacy is_fresh argument if explicitly set and freshness_class not modified
+        if is_fresh is False and freshness_class == "fresh":
+            freshness_class = "rotten"
 
-        # Confidence heuristic: fresh and high-confidence -> longer shelf life.
+        meta_range = meta.typical_shelf_life_days
         confidence = max(0.0, min(1.0, fused_confidence))
-        if not is_fresh:
-            # Rotten/stale fruit has essentially no remaining shelf life.
+
+        if freshness_class == "rotten":
             return ShelfLifeEstimate(
                 fruit=key,
                 min_days=0,
                 max_days=0,
-                basis="Not suitable for storage - consume immediately",
+                basis="Fruit is spoiled - consume immediately or discard",
+                basis_type="metadata_heuristic",
+                metadata=meta,
+            )
+        elif freshness_class == "stale":
+            return ShelfLifeEstimate(
+                fruit=key,
+                min_days=0,
+                max_days=1,
+                basis="Fruit is stale - consume within 24 hours",
                 basis_type="metadata_heuristic",
                 metadata=meta,
             )
@@ -126,11 +137,16 @@ class ShelfLifeEstimator:
         if remaining_min > remaining_max:
             remaining_min = remaining_max
 
+        if freshness_class in ("unsupported", "unknown"):
+            basis_str = f"Estimated typical ~{remaining_min}-{remaining_max} days (freshness model unsupported)"
+        else:
+            basis_str = f"Estimated ~{remaining_min}-{remaining_max} days remaining"
+
         return ShelfLifeEstimate(
             fruit=key,
             min_days=remaining_min,
             max_days=remaining_max,
-            basis=f"Estimated ~{remaining_min}-{remaining_max} days remaining",
+            basis=basis_str,
             basis_type="metadata_heuristic",
             metadata=meta,
         )

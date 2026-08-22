@@ -275,7 +275,8 @@ class DetectionConfig:
 
     # Detector backend
     detector_backend: str = "yolo"
-    detector_weights: str = "yolo11n.pt"
+    detector_weights: str = "models/detection/detector/weights/best.pt"
+    detector_imgsz: int = 640
     detection_confidence: float = 0.45
     detection_iou: float = 0.45
     max_detections: int = 20
@@ -312,6 +313,8 @@ class DetectionConfig:
             raise ValueError("detection_confidence must be in [0.0, 1.0].")
         if not 0.0 <= self.detection_iou <= 1.0:
             raise ValueError("detection_iou must be in [0.0, 1.0].")
+        if self.detector_imgsz <= 0:
+            raise ValueError("detector_imgsz must be positive.")
         if self.max_detections <= 0:
             raise ValueError("max_detections must be positive.")
         if self.classify_every_n_frames <= 0:
@@ -423,6 +426,7 @@ class Config:
             "detection": {
                 "detector_backend": self.detection.detector_backend,
                 "detector_weights": self.detection.detector_weights,
+                "detector_imgsz": self.detection.detector_imgsz,
                 "detection_confidence": self.detection.detection_confidence,
                 "detection_iou": self.detection.detection_iou,
                 "max_detections": self.detection.max_detections,

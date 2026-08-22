@@ -1,4 +1,4 @@
-﻿"""Abstract detector interface for the FreshSense Phase 4 detection module.
+"""Abstract detector interface for the FreshSense Phase 4 detection module.
 
 This module defines the contract that every object detector must implement.
 By adhering to this interface, any detector (YOLO, RT-DETR, Grounding DINO,
@@ -79,9 +79,10 @@ class Detection:
     """A single detected object.
 
     Attributes:
-        label: Detected class name (e.g. "apple").
+        label: Detected class name (e.g. "Apple").
         confidence: Detection confidence score (0.0-1.0).
         bbox: Bounding box in pixel coordinates.
+        class_id: Numeric class identifier.
         tracking_id: Optional persistent tracker id.
         cropped_image: Optional cropped image of the object.
         timestamp: Detection timestamp (seconds since epoch).
@@ -90,15 +91,47 @@ class Detection:
     label: str
     confidence: float
     bbox: BoundingBox
+    class_id: int = -1
     tracking_id: int = -1
     cropped_image: Optional[np.ndarray] = None
     timestamp: float = 0.0
 
+    @property
+    def class_name(self) -> str:
+        """Alias for label to satisfy contract."""
+        return self.label
+
+    @property
+    def x1(self) -> int:
+        """Left edge."""
+        return self.bbox.x1
+
+    @property
+    def y1(self) -> int:
+        """Top edge."""
+        return self.bbox.y1
+
+    @property
+    def x2(self) -> int:
+        """Right edge."""
+        return self.bbox.x2
+
+    @property
+    def y2(self) -> int:
+        """Bottom edge."""
+        return self.bbox.y2
+
     def to_dict(self) -> Dict:
-        """Convert to dictionary (LangGraph-friendly)."""
+        """Convert to dictionary (LangGraph/API-friendly)."""
         return {
+            "class_id": self.class_id,
+            "class_name": self.label,
             "class": self.label,
             "confidence": self.confidence,
+            "x1": self.bbox.x1,
+            "y1": self.bbox.y1,
+            "x2": self.bbox.x2,
+            "y2": self.bbox.y2,
             "bounding_box": {
                 "x1": self.bbox.x1,
                 "y1": self.bbox.y1,
@@ -151,17 +184,19 @@ class DetectorConfig:
     """Base configuration shared by all detectors.
 
     Attributes:
-        model_path: Path to the detector weights.
+        model_path: Path to the detector weights (default: baseline best.pt).
         confidence_threshold: Minimum detection confidence.
         iou_threshold: IoU threshold for non-max suppression.
+        image_size: Inference image resolution (default: 640).
         device: Inference device ("cuda", "cpu", or "auto").
         max_detections: Maximum number of detections per frame.
         class_names: List of supported class names (optional override).
     """
 
-    model_path: str = ""
+    model_path: str = "models/detection/detector/weights/best.pt"
     confidence_threshold: float = 0.45
     iou_threshold: float = 0.45
+    image_size: int = 640
     device: str = "auto"
     max_detections: int = 20
     class_names: Optional[List[str]] = None
@@ -171,6 +206,8 @@ class DetectorConfig:
             raise ValueError("confidence_threshold must be in [0.0, 1.0].")
         if not 0.0 <= self.iou_threshold <= 1.0:
             raise ValueError("iou_threshold must be in [0.0, 1.0].")
+        if self.image_size <= 0:
+            raise ValueError("image_size must be positive.")
         if self.max_detections <= 0:
             raise ValueError("max_detections must be positive.")
 

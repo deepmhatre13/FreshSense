@@ -1,4 +1,4 @@
-﻿"""Image quality assessment for FreshSense Phase 3.
+"""Image quality assessment for FreshSense Phase 3.
 
 This module provides image quality metrics for real-time inference:
 
@@ -139,11 +139,14 @@ class QualityAssessor:
         is_motion_ok = True
 
         if self.config.use_motion_detection and self._previous_frame is not None:
-            prev_gray = cv2.cvtColor(self._previous_frame, cv2.COLOR_BGR2GRAY)
-            diff = cv2.absdiff(gray, prev_gray)
-            motion_score = float(np.mean(diff)) / 255.0
-            motion_detected = motion_score > self.config.motion_threshold / 100.0
-            is_motion_ok = not motion_detected
+            if self._previous_frame.shape == frame.shape:
+                prev_gray = cv2.cvtColor(self._previous_frame, cv2.COLOR_BGR2GRAY)
+                diff = cv2.absdiff(gray, prev_gray)
+                motion_score = float(np.mean(diff)) / 255.0
+                motion_detected = motion_score > self.config.motion_threshold / 100.0
+                is_motion_ok = not motion_detected
+            else:
+                self._previous_frame = None
 
         # Store current frame for next motion check
         self._previous_frame = frame.copy()

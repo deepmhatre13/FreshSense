@@ -1,4 +1,4 @@
-﻿"""Visualization helpers for the FreshSense Phase 4 detection module.
+"""Visualization helpers for the FreshSense Phase 4 detection module.
 
 Draws bounding boxes, labels, and tracking IDs onto frames for debugging and
 preview output.
@@ -80,6 +80,7 @@ def draw_detections(
     frame: np.ndarray,
     detections: Sequence[Detection],
     show_tracking_id: bool = True,
+    show_confidence: bool = True,
 ) -> np.ndarray:
     """Draw all detections onto a copy of the frame.
 
@@ -87,6 +88,7 @@ def draw_detections(
         frame: Original BGR frame.
         detections: Detections to draw.
         show_tracking_id: If True, prepend the tracking id to the label.
+        show_confidence: If True, include confidence score in the label.
 
     Returns:
         A copy of the frame with boxes drawn.
@@ -94,8 +96,12 @@ def draw_detections(
     out = frame.copy()
     for det in detections:
         color = color_for_label(det.label)
-        label = det.label
+        parts = []
         if show_tracking_id and det.tracking_id >= 0:
-            label = f"#{det.tracking_id} {det.label}"
-        draw_box(out, det.bbox, color, label)
+            parts.append(f"#{det.tracking_id}")
+        parts.append(det.label)
+        if show_confidence and det.confidence > 0.0:
+            parts.append(f"{det.confidence:.2f}")
+        label_text = " ".join(parts)
+        draw_box(out, det.bbox, color, label_text)
     return out

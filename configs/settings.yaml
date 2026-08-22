@@ -63,7 +63,8 @@ inference:
 # Phase 4 Object detection settings
 detection:
   detector_backend: "yolo"
-  detector_weights: "yolo11n.pt"
+  detector_weights: "models/detection/detector/weights/best.pt"
+  detector_imgsz: 640
   detection_confidence: 0.45
   detection_iou: 0.45
   max_detections: 20
@@ -80,6 +81,7 @@ detection:
   fresh_bonus: 0.5
   gradcam_enabled: false
   quality_warning: true
+
 detection_dataset:
   roboflow_workspace: deepam-mhatre
   roboflow_project: fruits-test-ajvf8-duncc

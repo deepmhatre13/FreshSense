@@ -1,4 +1,4 @@
-﻿"""Concrete detector implementations for FreshSense Phase 4.
+"""Concrete detector implementations for FreshSense Phase 4.
 
 The default detector is YOLOv11 (``YOLODetector``) via the Ultralytics library.
 If Ultralytics is unavailable, a lightweight ``SimpleDetector`` (color/motion
@@ -28,46 +28,30 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["YOLODetector", "SimpleDetector", "MockDetector"]
 
-# COCO subset of fruit/vegetable classes relevant to FreshSense.
-COCO_FRUIT_IDS = {
-    "apple": 47,
-    "banana": 52,
-    "orange": 49,
-    "broccoli": 46,
-    "carrot": 51,
-    "hot dog": 53,  # placeholder, unused
-    "pizza": 55,  # placeholder, unused
+from pathlib import Path
+
+# Frozen 10-class taxonomy from dataset v2 baseline
+FROZEN_10_CLASSES = {
+    0: "Apple",
+    1: "Grape",
+    2: "Kiwi",
+    3: "Mango",
+    4: "Orange",
+    5: "Strawberry",
+    6: "banana",
+    7: "cherry",
+    8: "chickoo",
+    9: "guava",
 }
 
-DEFAULT_YOLO_CLASSES = [
-    "apple",
-    "banana",
-    "orange",
-    "broccoli",
-    "carrot",
-]
-
-
-def _auto_download_yolo(weight_name: str) -> str:
-    """Best-effort helper that returns the path Ultralytics will use.
-
-    Ultralytics downloads known weights (e.g. ``yolo11n.pt``) on first use when
-    given the bare name. This helper only logs the behaviour for clarity.
-
-    Args:
-        weight_name: Model weight name (e.g. "yolo11n.pt").
-
-    Returns:
-        The weight name (Ultralytics resolves autodownload internally).
-    """
-    logger.info("Ultralytics will auto-download weights if missing: %s", weight_name)
-    return weight_name
+DEFAULT_YOLO_CLASSES = list(FROZEN_10_CLASSES.values())
 
 
 class YOLODetector(BaseDetector):
     """YOLOv11 object detector wrapping Ultralytics.
 
-    Loads ``yolo11n.pt`` (auto-downloaded by Ultralytics if missing), reuses a
+    Loads the trained production baseline checkpoint
+    (``models/detection/detector/weights/best.pt`` by default), reuses a
     single model instance, prefers GPU, and falls back to CPU.
 
     Note:
@@ -78,14 +62,23 @@ class YOLODetector(BaseDetector):
     def __init__(
         self,
         config: DetectorConfig,
-        weight_name: str = "yolo11n.pt",
+        weight_name: Optional[str] = None,
     ) -> None:
         super().__init__(config)
-        self.weight_name = _auto_download_yolo(weight_name)
+        self.weight_name = weight_name or config.model_path or "models/detection/detector/weights/best.pt"
         self.model = None
 
     def load(self) -> None:
         """Load the YOLO model and move it to the selected device."""
+        weight_path = Path(self.weight_name)
+        # Verify checkpoint file exists if it refers to a local file path
+        if ("/" in self.weight_name or "\\" in self.weight_name or self.weight_name.endswith(".pt")) and not weight_path.exists():
+            # Standard Ultralytics pretrained model names auto-download if simple filename in cwd
+            if not (weight_path.name == self.weight_name and (weight_path.exists() or self.weight_name in ["yolo11n.pt", "yolo11s.pt", "yolo11m.pt", "yolo11l.pt", "yolo11x.pt"])):
+                raise FileNotFoundError(
+                    f"YOLO model weights file not found: '{self.weight_name}'"
+                )
+
         try:
             from ultralytics import YOLO
         except ImportError as exc:  # pragma: no cover - depends on env
@@ -107,11 +100,22 @@ class YOLODetector(BaseDetector):
         if self.model is None:
             raise RuntimeError("YOLODetector not loaded. Call load() first.")
 
+        # Input validation for frame robustness
+        if frame is None or not isinstance(frame, np.ndarray) or frame.size == 0 or frame.ndim != 3 or frame.shape[2] != 3:
+            logger.warning("Invalid or unreadable input image frame received by YOLODetector.")
+            return DetectionResult(
+                detections=[],
+                frame_width=frame.shape[1] if (isinstance(frame, np.ndarray) and frame.ndim >= 2) else 0,
+                frame_height=frame.shape[0] if (isinstance(frame, np.ndarray) and frame.ndim >= 1) else 0,
+                latency_ms=0.0,
+            )
+
         start = time.perf_counter()
         results = self.model.predict(
             frame,
             conf=self.config.confidence_threshold,
             iou=self.config.iou_threshold,
+            imgsz=self.config.image_size,
             verbose=False,
         )
         latency_ms = (time.perf_counter() - start) * 1000.0
@@ -121,20 +125,21 @@ class YOLODetector(BaseDetector):
 
         if results:
             boxes = results[0].boxes
-            names = results[0].names
+            names = getattr(results[0], "names", FROZEN_10_CLASSES) or FROZEN_10_CLASSES
             if boxes is not None and len(boxes) > 0:
                 for box in boxes:
                     cls_id = int(box.cls.item())
                     conf = float(box.conf.item())
-                    label = names.get(cls_id, str(cls_id))
+                    label = names.get(cls_id, str(cls_id)) if isinstance(names, dict) else (names[cls_id] if cls_id < len(names) else str(cls_id))
                     x1, y1, x2, y2 = box.xyxy[0].tolist()
                     detections.append(
                         Detection(
                             label=label,
                             confidence=conf,
                             bbox=BoundingBox(
-                                int(x1), int(y1), int(x2), int(y2)
+                                int(round(x1)), int(round(y1)), int(round(x2)), int(round(y2))
                             ),
+                            class_id=cls_id,
                             timestamp=time.time(),
                         )
                     )
@@ -152,8 +157,8 @@ class YOLODetector(BaseDetector):
         """Warm up the model on a dummy frame."""
         if self.model is None:
             return
-        dummy = np.zeros((640, 640, 3), dtype=np.uint8)
-        self.model.predict(dummy, verbose=False)
+        dummy = np.zeros((self.config.image_size, self.config.image_size, 3), dtype=np.uint8)
+        self.model.predict(dummy, imgsz=self.config.image_size, verbose=False)
         logger.info("YOLODetector warmup complete.")
 
     def shutdown(self) -> None:

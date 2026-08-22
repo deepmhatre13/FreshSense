@@ -44,7 +44,7 @@ class TestDetectionPipelineIntegration:
         """Pipeline config should have sensible defaults."""
         cfg = DetectionPipelineConfig()
         assert cfg.detector_name == "yolo"
-        assert cfg.detector_weights == "yolo11n.pt"
+        assert cfg.detector_weights == "models/detection/detector/weights/best.pt"
         assert cfg.confidence_threshold == 0.45
         assert cfg.classify_every_n_frames == 3
 
@@ -64,7 +64,7 @@ class TestDetectionPipelineIntegration:
 
         pipe_cfg = DetectionPipelineConfig(
             detector_name="yolo",
-            detector_weights=ds.detector_model,
+            detector_weights=d.detector_weights,
             confidence_threshold=d.detection_confidence,
             iou_threshold=d.detection_iou,
             max_detections=d.max_detections,
@@ -80,7 +80,7 @@ class TestDetectionPipelineIntegration:
             classify_every_n_frames=d.classify_every_n_frames,
         )
 
-        assert pipe_cfg.detector_weights == "yolo11n.pt"
+        assert pipe_cfg.detector_weights == "models/detection/detector/weights/best.pt"
         assert pipe_cfg.confidence_threshold == 0.45
 
     def test_yolo_detector_loads_weight_name(self):

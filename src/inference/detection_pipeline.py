@@ -42,7 +42,7 @@ FRESHNESS_CLASSES = ["fresh", "stale", "rotten"]
 # freshness classifier. For any other detected fruit the pipeline reports a
 # freshness of ``"unknown"`` (``is_uncertain`` is set appropriately downstream)
 # rather than silently mapping it to the wrong freshness class.
-FRESHNESS_SUPPORTED_FRUITS = frozenset({"apple", "banana", "orange"})
+FRESHNESS_SUPPORTED_FRUITS = frozenset({"apple", "apples", "banana", "bananas", "orange", "oranges"})
 
 
 def freshness_supported(fruit: str) -> bool:
@@ -55,7 +55,8 @@ def freshness_supported(fruit: str) -> bool:
         True if a dedicated freshness classifier exists for this fruit,
         False otherwise (freshness will be reported as ``"unknown"``).
     """
-    return (fruit or "").strip().lower() in FRESHNESS_SUPPORTED_FRUITS
+    clean = (fruit or "").strip().lower()
+    return clean in FRESHNESS_SUPPORTED_FRUITS or clean.rstrip("s") in FRESHNESS_SUPPORTED_FRUITS
 
 
 logger = logging.getLogger(__name__)
@@ -93,7 +94,8 @@ class DetectionPipelineConfig:
     """
 
     detector_name: str = "yolo"
-    detector_weights: str = "yolo11n.pt"
+    detector_weights: str = "models/detection/detector/weights/best.pt"
+    detector_imgsz: int = 640
     confidence_threshold: float = 0.45
     iou_threshold: float = 0.45
     max_detections: int = 20
@@ -156,6 +158,7 @@ class DetectionPipeline:
             model_path=cfg.detector_weights,
             confidence_threshold=cfg.confidence_threshold,
             iou_threshold=cfg.iou_threshold,
+            image_size=cfg.detector_imgsz,
             max_detections=cfg.max_detections,
             class_names=SUPPORTED_CLASSES,
         )
@@ -268,12 +271,11 @@ class DetectionPipeline:
         # never misclassified as a supported fruit.
         supported = freshness_supported(det.label)
 
-        # Adaptive classification: classify every N frames.
+        # Adaptive classification: classify every N frames (and always on frame 1).
         self._classify_counter[det.tracking_id] += 1
         should_classify = (
-            self._classify_counter[det.tracking_id]
-            % self.config.classify_every_n_frames
-            == 0
+            self._classify_counter[det.tracking_id] == 1
+            or self._classify_counter[det.tracking_id] % self.config.classify_every_n_frames == 0
         )
 
         if (
@@ -301,10 +303,10 @@ class DetectionPipeline:
             if supported and last is not None:
                 freshness, raw_conf, latency_ms, model_version = last
             else:
-                freshness = "unknown"
+                freshness = "unsupported" if not supported else "unknown"
                 raw_conf = det.confidence
                 latency_ms = 0.0
-                model_version = "pending"
+                model_version = "n/a"
 
         # Stabilize
         stabilized = stabilizer.update(freshness, raw_conf)
@@ -326,7 +328,7 @@ class DetectionPipeline:
         shelf = self.shelf_life.estimate(
             fruit=det.label,
             fused_confidence=fused_conf,
-            is_fresh=(final_class == "fresh"),
+            freshness_class=final_class,
         )
 
         metadata = {

@@ -1,0 +1,207 @@
+﻿# FreshSense AI - Phase 4 Freshness Source Label Registry
+# Single source of truth for mapping local datasets to 20-class taxonomy.
+# Rules: directory labels take precedence for freshness state. Fruit identity
+# from explicit fruit keywords in filenames ONLY when directory lacks it.
+# Non-taxonomy fruits rejected. No fruit keyword -> rejected. Contradiction -> rejected.
+
+dataset_version: "1.0.0"
+random_seed: 42
+train_split: 0.70
+valid_split: 0.15
+test_split: 0.15
+
+mendeley_original_image:
+  source_dataset: "Mendeley Original Image"
+  path: "data/Original Image"
+  license: "CC BY 4.0"
+  source_url: "https://data.mendeley.com/datasets/s456cmh8nd/1"
+  structure: "class_directory"
+  label_mapping:
+    FreshApple:
+      canonical_class: "Apple_fresh"
+      fruit: "Apple"
+      freshness_state: "fresh"
+      accept: true
+      mapping_reason: "Explicit fresh-fruit directory label"
+    RottenApple:
+      canonical_class: "Apple_rotten"
+      fruit: "Apple"
+      freshness_state: "rotten"
+      accept: true
+      mapping_reason: "Explicit rotten-fruit directory label"
+    FreshBanana:
+      canonical_class: "banana_fresh"
+      fruit: "banana"
+      freshness_state: "fresh"
+      accept: true
+      mapping_reason: "Explicit fresh-fruit directory label"
+    RottenBanana:
+      canonical_class: "banana_rotten"
+      fruit: "banana"
+      freshness_state: "rotten"
+      accept: true
+      mapping_reason: "Explicit rotten-fruit directory label"
+    FreshGrape:
+      canonical_class: "Grape_fresh"
+      fruit: "Grape"
+      freshness_state: "fresh"
+      accept: true
+      mapping_reason: "Explicit fresh-fruit directory label"
+    RottenGrape:
+      canonical_class: "Grape_rotten"
+      fruit: "Grape"
+      freshness_state: "rotten"
+      accept: true
+      mapping_reason: "Explicit rotten-fruit directory label"
+    FreshGuava:
+      canonical_class: "guava_fresh"
+      fruit: "guava"
+      freshness_state: "fresh"
+      accept: true
+      mapping_reason: "Explicit fresh-fruit directory label"
+    RottenGuava:
+      canonical_class: "guava_rotten"
+      fruit: "guava"
+      freshness_state: "rotten"
+      accept: true
+      mapping_reason: "Explicit rotten-fruit directory label"
+    FreshJujube:
+      canonical_class: null
+      fruit: "Jujube"
+      freshness_state: "fresh"
+      accept: false
+      reject_reason: "unsupported_fruit"
+      mapping_reason: "Jujube is NOT in the 20-class canonical taxonomy"
+    RottenJujube:
+      canonical_class: null
+      fruit: "Jujube"
+      freshness_state: "rotten"
+      accept: false
+      reject_reason: "unsupported_fruit"
+      mapping_reason: "Jujube is NOT in the 20-class canonical taxonomy"
+    FreshOrange:
+      canonical_class: "Orange_fresh"
+      fruit: "Orange"
+      freshness_state: "fresh"
+      accept: true
+      mapping_reason: "Explicit fresh-fruit directory label"
+    RottenOrange:
+      canonical_class: "Orange_rotten"
+      fruit: "Orange"
+      freshness_state: "rotten"
+      accept: true
+      mapping_reason: "Explicit rotten-fruit directory label"
+    FreshPomegranate:
+      canonical_class: null
+      fruit: "Pomegranate"
+      freshness_state: "fresh"
+      accept: false
+      reject_reason: "unsupported_fruit"
+      mapping_reason: "Pomegranate is NOT in the 20-class canonical taxonomy"
+    RottenPomegranate:
+      canonical_class: null
+      fruit: "Pomegranate"
+      freshness_state: "rotten"
+      accept: false
+      reject_reason: "unsupported_fruit"
+      mapping_reason: "Pomegranate is NOT in the 20-class canonical taxonomy"
+    FreshStrawberry:
+      canonical_class: "Strawberry_fresh"
+      fruit: "Strawberry"
+      freshness_state: "fresh"
+      accept: true
+      mapping_reason: "Explicit fresh-fruit directory label"
+    RottenStrawberry:
+      canonical_class: "Strawberry_rotten"
+      fruit: "Strawberry"
+      freshness_state: "rotten"
+      accept: true
+      mapping_reason: "Explicit rotten-fruit directory label"
+
+quality_dataset:
+  source_dataset: "Quality Dataset (Fresh VS Rotten)"
+  path: "data/Quality Dataset"
+  license: "CC0 1.0 Universal"
+  source_url: "https://www.kaggle.com/datasets/abc831015/quality-dataset-fresh-vs-rotten-fruits"
+  structure: "split/freshness_directory"
+  directory_labels:
+    fresh: "fresh"
+    rotten: "rotten"
+  fruit_keywords:
+    Apple:
+      keywords: ["apple", "apples"]
+    banana:
+      keywords: ["banana", "bananas"]
+    Grape:
+      keywords: ["grape", "grapes"]
+    Kiwi:
+      keywords: ["kiwi", "kiwis"]
+    Mango:
+      keywords: ["mango", "mangos"]
+    Orange:
+      keywords: ["orange", "oranges", "tangerine", "tangerines"]
+    Strawberry:
+      keywords: ["strawberry", "strawberries"]
+    cherry:
+      keywords: ["cherry", "cherries"]
+    guava:
+      keywords: ["guava", "guavas"]
+    chickoo:
+      keywords: ["chickoo", "chocoos", "sapodilla", "sapodillas", "sapote", "sapotes"]
+  rejected_fruits:
+    pear:
+      keywords: ["pear", "pears"]
+      reject_reason: "unsupported_fruit"
+    peach:
+      keywords: ["peach", "peaches"]
+      reject_reason: "unsupported_fruit"
+    plum:
+      keywords: ["plum", "plums"]
+      reject_reason: "unsupported_fruit"
+  contradiction_check: true
+  reject_reason_no_fruit: "no_fruit_identity"
+  reject_reason_unsupported: "unsupported_fruit"
+  reject_reason_contradiction: "label_contradiction"
+legacy_fresh_rotten:
+  source_dataset: "Kaggle Fresh and Rotten Fruits Benchmark"
+  path: "data/raw/dataset/dataset"
+  license: "CC0 1.0 Universal"
+  source_url: "https://www.kaggle.com/datasets/sriramr/fruits-fresh-and-rotten-for-classification"
+  structure: "split/class_directory"
+  label_mapping:
+    freshapples:
+      canonical_class: "Apple_fresh"
+      fruit: "Apple"
+      freshness_state: "fresh"
+      accept: true
+      mapping_reason: "Explicit fresh-fruit directory label"
+    rottenapples:
+      canonical_class: "Apple_rotten"
+      fruit: "Apple"
+      freshness_state: "rotten"
+      accept: true
+      mapping_reason: "Explicit rotten-fruit directory label"
+    freshbanana:
+      canonical_class: "banana_fresh"
+      fruit: "banana"
+      freshness_state: "fresh"
+      accept: true
+      mapping_reason: "Explicit fresh-fruit directory label"
+    rottenbanana:
+      canonical_class: "banana_rotten"
+      fruit: "banana"
+      freshness_state: "rotten"
+      accept: true
+      mapping_reason: "Explicit rotten-fruit directory label"
+    freshoranges:
+      canonical_class: "Orange_fresh"
+      fruit: "Orange"
+      freshness_state: "fresh"
+      accept: true
+      mapping_reason: "Explicit fresh-fruit directory label"
+    rottenoranges:
+      canonical_class: "Orange_rotten"
+      fruit: "Orange"
+      freshness_state: "rotten"
+      accept: true
+      mapping_reason: "Explicit rotten-fruit directory label"
