@@ -1,0 +1,102 @@
+{
+    "apple": {
+        "scientific_name": "Malus domestica",
+        "optimal_storage": "Refrigerated, away from ethylene-sensitive produce",
+        "ideal_temperature_c": "0-4",
+        "ideal_humidity_pct": "90-95",
+        "typical_shelf_life_days": [14, 30],
+        "spoilage_signs": ["soft spots", "wrinkled skin", "browning"],
+        "nutrition": {"calories": 52, "carbohydrates": 14},
+        "storage_tip": "Keep in the crisper drawer to maintain crispness."
+    },
+    "grape": {
+        "scientific_name": "Vitis vinifera",
+        "optimal_storage": "Refrigerated, unwashed until consumption",
+        "ideal_temperature_c": "0-2",
+        "ideal_humidity_pct": "90-95",
+        "typical_shelf_life_days": [7, 14],
+        "spoilage_signs": ["shriveling", "mold", "browning stems"],
+        "nutrition": {"calories": 69, "carbohydrates": 18},
+        "storage_tip": "Store in a perforated plastic bag in the fridge."
+    },
+    "kiwi": {
+        "scientific_name": "Actinidia deliciosa",
+        "optimal_storage": "Refrigerated once ripe",
+        "ideal_temperature_c": "0-1",
+        "ideal_humidity_pct": "90-95",
+        "typical_shelf_life_days": [7, 21],
+        "spoilage_signs": ["excessive softness", "fermented smell", "shriveling"],
+        "nutrition": {"calories": 61, "carbohydrates": 15},
+        "storage_tip": "Keep at room temperature to ripen, then move to fridge."
+    },
+    "mango": {
+        "scientific_name": "Mangifera indica",
+        "optimal_storage": "Room temperature until ripe, then refrigerated",
+        "ideal_temperature_c": "10-13",
+        "ideal_humidity_pct": "85-90",
+        "typical_shelf_life_days": [5, 14],
+        "spoilage_signs": ["black spots", "fermented smell", "mushy texture"],
+        "nutrition": {"calories": 60, "carbohydrates": 15},
+        "storage_tip": "Do not refrigerate before ripe to avoid chilling injury."
+    },
+    "orange": {
+        "scientific_name": "Citrus sinensis",
+        "optimal_storage": "Refrigerated or cool room temperature",
+        "ideal_temperature_c": "3-8",
+        "ideal_humidity_pct": "85-90",
+        "typical_shelf_life_days": [14, 28],
+        "spoilage_signs": ["soft spots", "mold", "drying out"],
+        "nutrition": {"calories": 47, "carbohydrates": 12},
+        "storage_tip": "Store loose in the crisper drawer for maximum air flow."
+    },
+    "strawberry": {
+        "scientific_name": "Fragaria x ananassa",
+        "optimal_storage": "Refrigerated, unwashed, in a single layer",
+        "ideal_temperature_c": "0-2",
+        "ideal_humidity_pct": "90-95",
+        "typical_shelf_life_days": [3, 7],
+        "spoilage_signs": ["mold", "mushiness", "darkening"],
+        "nutrition": {"calories": 32, "carbohydrates": 8},
+        "storage_tip": "Do not wash until immediately before eating."
+    },
+    "banana": {
+        "scientific_name": "Musa",
+        "optimal_storage": "Room temperature, away from other ripening fruits",
+        "ideal_temperature_c": "13-15",
+        "ideal_humidity_pct": "85-90",
+        "typical_shelf_life_days": [3, 7],
+        "spoilage_signs": ["excessive blackening", "fruit flies", "mushiness"],
+        "nutrition": {"calories": 89, "carbohydrates": 23},
+        "storage_tip": "Can be refrigerated once ripe, though skin will turn black."
+    },
+    "cherry": {
+        "scientific_name": "Prunus avium",
+        "optimal_storage": "Refrigerated, unwashed",
+        "ideal_temperature_c": "-1-1",
+        "ideal_humidity_pct": "90-95",
+        "typical_shelf_life_days": [4, 10],
+        "spoilage_signs": ["shriveling", "browning stems", "mold"],
+        "nutrition": {"calories": 63, "carbohydrates": 16},
+        "storage_tip": "Store in a plastic bag in the fridge."
+    },
+    "chickoo": {
+        "scientific_name": "Manilkara zapota",
+        "optimal_storage": "Room temperature until ripe, then refrigerated",
+        "ideal_temperature_c": "10-15",
+        "ideal_humidity_pct": "85-90",
+        "typical_shelf_life_days": [3, 7],
+        "spoilage_signs": ["fermented smell", "excessive softness", "mold"],
+        "nutrition": {"calories": 83, "carbohydrates": 20},
+        "storage_tip": "Ripen at room temperature, it yields to gentle pressure when ready."
+    },
+    "guava": {
+        "scientific_name": "Psidium guajava",
+        "optimal_storage": "Room temperature until ripe, then refrigerated",
+        "ideal_temperature_c": "7-10",
+        "ideal_humidity_pct": "90-95",
+        "typical_shelf_life_days": [2, 7],
+        "spoilage_signs": ["mushiness", "browning", "fermented smell"],
+        "nutrition": {"calories": 68, "carbohydrates": 14},
+        "storage_tip": "Very perishable once ripe; eat promptly."
+    }
+}
