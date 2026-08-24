@@ -103,9 +103,10 @@ class TestDetectionPipelineIntegration:
         frame = np.random.randint(100, 150, (480, 640, 3), dtype=np.uint8)
         frame[100:300, 100:300] = 128
         
-        # Grape is not supported by freshness classifier
+                # Kiwi has NO validated freshness model (data_not_available per the
+        # availability registry) — freshness must never be fabricated.
         det = Detection(
-            label="grape",
+            label="kiwi",
             confidence=0.9,
             bbox=BoundingBox(100, 100, 300, 300),
             timestamp=0.0,
@@ -116,8 +117,8 @@ class TestDetectionPipelineIntegration:
         assert len(result.fruits) == 1
         fruit_res = result.fruits[0]
         
-        assert fruit_res.detection.label == "grape"
-        assert fruit_res.freshness_class == "unknown"
+        assert fruit_res.detection.label == "kiwi"
+        assert fruit_res.freshness_class == "data_not_available"
 
     def test_pipeline_supported_fruit_missing_metadata(self):
         """A supported fruit with no metadata should flag shelf-life as unavailable or heuristic."""
@@ -147,5 +148,131 @@ class TestDetectionPipelineIntegration:
         fruit_res = result.fruits[0]
         
         assert fruit_res.detection.label == "apple"
-        assert fruit_res.shelf_life.basis_type in ("unavailable", "heuristic")
+        assert fruit_res.shelf_life.shelf_life_status == "unsupported"
+
+
+
+# ============================================================================
+# Storage-condition pass-through, multi-fruit isolation, tracking (Phases 5/13/14)
+# ============================================================================
+
+from types import SimpleNamespace
+
+from src.inference.shelf_life import ShelfLifeEstimate
+
+
+class _StubPredictor:
+    """Deterministic freshness classifier stand-in (no torch required)."""
+
+    def __init__(self, freshness="fresh", confidence=0.85):
+        self.freshness = freshness
+        self.confidence = confidence
+        self.calls = 0
+
+    def predict(self, crop):
+        self.calls += 1
+        return SimpleNamespace(
+            freshness_class=self.freshness,
+            confidence=self.confidence,
+            latency_ms=0.5,
+            model_version="stub",
+        )
+
+
+def _make_pipeline():
+    pipe = DetectionPipeline(DetectionPipelineConfig(detector_name="mock"), predictor=None)
+    pipe.initialize()
+    return pipe
+
+
+def test_pipeline_passes_storage_condition_to_estimator():
+    pipe = _make_pipeline()
+    pipe.predictor = _StubPredictor("fresh", 0.85)
+    frame = np.random.randint(100, 150, (480, 640, 3), dtype=np.uint8)
+
+    det = Detection(label="apple", confidence=0.9,
+                    bbox=BoundingBox(100, 100, 300, 300), timestamp=0.0)
+    pipe.detector._detections = [det]
+
+    result = pipe.process_frame(frame, storage_condition="refrigerated")
+    assert len(result.fruits) == 1
+    shelf = result.fruits[0].shelf_life
+    assert isinstance(shelf, ShelfLifeEstimate)
+    assert shelf.storage_condition == "refrigerated"
+    assert "assumes refrigerated storage" in shelf.explanation
+
+    result2 = pipe.process_frame(frame, storage_condition=None)
+    assert result2.fruits[0].shelf_life.storage_condition == "ambient"
+    pipe.shutdown()
+
+
+def test_pipeline_rejects_invalid_storage_condition_before_inference():
+    pipe = _make_pipeline()
+    stub = _StubPredictor()
+    pipe.predictor = stub
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    pipe.detector._detections = [
+        Detection(label="apple", confidence=0.9,
+                  bbox=BoundingBox(100, 100, 300, 300), timestamp=0.0)
+    ]
+    with pytest.raises(ValueError):
+        pipe.process_frame(frame, storage_condition="freezer")
+    assert stub.calls == 0, "no classification work may happen for invalid input"
+    pipe.shutdown()
+
+
+def test_pipeline_multi_fruit_shelf_life_isolated_per_fruit():
+    pipe = _make_pipeline()
+    pipe.predictor = _StubPredictor("fresh", 0.85)
+    frame = np.ones((480, 640, 3), dtype=np.uint8) * 120
+    pipe.detector._detections = [
+        Detection(label="apple", confidence=0.9,
+                  bbox=BoundingBox(20, 20, 200, 200), timestamp=0.0),
+        Detection(label="kiwi", confidence=0.88,
+                  bbox=BoundingBox(300, 300, 480, 480), timestamp=0.0),
+    ]
+    result = pipe.process_frame(frame)
+    by_label = {f.detection.label: f for f in result.fruits}
+    assert set(by_label) == {"apple", "kiwi"}
+
+    apple, kiwi = by_label["apple"], by_label["kiwi"]
+    assert apple.freshness_class == "fresh"
+    assert apple.shelf_life.shelf_life_status == "estimated"
+    assert apple.shelf_life.remaining_days >= 1
+
+    # Kiwi has NO freshness model: data_not_available, never fabricated.
+    assert kiwi.freshness_class == "data_not_available"
+    assert kiwi.shelf_life.shelf_life_status == "data_not_available"
+    assert kiwi.shelf_life.remaining_days is None
+    pipe.shutdown()
+
+
+def test_pipeline_repeat_tracking_id_stabilizes_not_duplicates():
+    """Same physical fruit across frames: ONE record per track id, the
+    classification is REUSED between classify ticks, and shelf-life stays
+    deterministic for identical fused confidence."""
+    pipe = _make_pipeline()
+    stub = _StubPredictor("fresh", 0.85)
+    pipe.predictor = stub
+    frame = np.ones((480, 640, 3), dtype=np.uint8) * 120
+    det = Detection(label="banana", confidence=0.9,
+                    bbox=BoundingBox(50, 50, 220, 220), timestamp=0.0)
+
+    pipe.detector._detections = [det]
+    first = pipe.process_frame(frame)
+    assert len(first.fruits) == 1
+    assert stub.calls == 1  # classified on first sight
+
+    pipe.detector._detections = [det]  # same object -> same track id
+    second = pipe.process_frame(frame)
+    assert len(second.fruits) == 1
+    assert second.fruits[0].detection.tracking_id == \
+        first.fruits[0].detection.tracking_id
+    assert stub.calls == 1, "classification must be reused within the cadence window"
+
+    d1 = first.fruits[0].shelf_life.to_dict()
+    d2 = second.fruits[0].shelf_life.to_dict()
+    assert d1["remaining_days"] == d2["remaining_days"]
+    assert d1["storage_condition"] == d2["storage_condition"]
+    pipe.shutdown()
 

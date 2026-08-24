@@ -165,6 +165,10 @@ class Trainer:
         self.start_epoch = 0
         self.early_stopped = False
         self.patience_counter = 0
+        # Uncertainty threshold calibrated from validation data (NOT test set).
+        # A prediction is "uncertain" when top-1 softmax < this value.
+        # Calibrated in fit() after the first validation pass.
+        self.uncertainty_threshold: float = 0.5
 
         # Resume from checkpoint if requested.
         if resume_from is not None:
@@ -300,7 +304,7 @@ class Trainer:
             # Versioning
             "checkpoint_version": 2,
             "architecture_version": "EfficientNet-B0-v2",
-            "classifier_type": "1280-256-6",
+            "classifier_type": f"1280-256-{len(self.class_names)}",
             # Core training state
             "epoch": epoch,
             "model_state_dict": self.model.state_dict(),
@@ -328,6 +332,9 @@ class Trainer:
             "torch_version": torch.__version__,
             "torchvision_version": torchvision.__version__,
             "python_version": platform.python_version(),
+            # Calibrated uncertainty threshold from validation data (NOT test).
+            # A prediction is "uncertain" when top-1 softmax < this value.
+            "uncertainty_threshold": getattr(self, "uncertainty_threshold", 0.5),
             "history": {
                 "train_loss": self.history.train_loss,
                 "val_loss": self.history.val_loss,

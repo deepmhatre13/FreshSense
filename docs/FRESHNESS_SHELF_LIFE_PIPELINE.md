@@ -61,28 +61,44 @@ The YOLO detector supports 10 fruit classes:
   - Freshness is predicted by the EfficientNet-B0 checkpoint (`models/checkpoints/best_model.pth`).
   - Freshness classes: `fresh`, `stale`, `rotten`.
 - **Unsupported fruits**: `Grape`, `Kiwi`, `Mango`, `Strawberry`, `Cherry`, `Chickoo`, `Guava`
-  - Explicit fallback: reported as `freshness_class="unknown"` and `is_uncertain=True`.
-  - The freshness classifier is **never** invoked on unsupported crops to prevent misclassification.
-  - Shelf-life for rotten/unknown items explicitly reports `0-0 days` with basis `metadata_heuristic` or `unavailable`.
+  - Explicit fallback: reported as `freshness_class="unsupported"` (or `uncertain`
+    when the freshness signal is unstable); `is_uncertain=True` where applicable.
+  - The freshness classifier is **never** invoked on unsupported crops (prevents
+    misclassification), and the pipeline does **NOT** fabricate a freshness or a
+    shelf-life for them — `remaining_days=null`.
 
 ---
 
 ## 4. Shelf-Life Estimation Logic
 
-Shelf life is a **metadata-driven heuristic** based on domain storage data in `fruit_database.json`. It is **not** an end-to-end ML regression model.
+Shelf life is a **metadata-driven deterministic heuristic** based on the typical
+storage range in `fruit_database.json` combined with freshness state and
+confidence. It is **not** an end-to-end ML regression model and it is **not** a
+validated time-to-event spoilage predictor.
 
-1. If metadata for the fruit is missing:
-   - `basis_type = "unavailable"`
-   - `min_days = 0, max_days = 0`
-2. If fruit is rotten (`freshness_class == "rotten"` or `is_fresh == False`):
-   - `basis_type = "metadata_heuristic"`
-   - `min_days = 0, max_days = 0`
-   - `basis = "Not suitable for storage - consume immediately"`
-3. If fruit is fresh:
-   - `range = typical_shelf_life_days` from `fruit_database.json` (e.g. `[14, 30]` for Apple)
-   - `min_days = int(round(range_min * fused_confidence))`
-   - `max_days = int(round(range_max * fused_confidence))`
-   - `basis_type = "metadata_heuristic"`
+1. Freshness state machine (order matters):
+   - **`rotten` / `stale`** → `shelf_life_status="expired"`, `remaining_days=0`.
+   - **`unsupported`** → `shelf_life_status="unsupported"`, `remaining_days=null`
+     (never converted to expired).
+   - **`unknown`** → `shelf_life_status="unknown"`, `remaining_days=null`
+     (never converted to fresh).
+   - **`uncertain`** → `shelf_life_status="uncertain"`, `remaining_days=null`, and,
+     equivalently, malformed/unusable confidence → `uncertain`.
+2. If the fruit has no entry in `fruit_database.json`:
+   - `shelf_life_status="unsupported"`, `remaining_days=null`,
+     `basis="metadata_unavailable"`.
+3. If `typical_shelf_life_days` is missing/invalid (never a fabricate default):
+   - `shelf_life_status="unsupported"`, `remaining_days=null`,
+     `basis="metadata_invalid"`.
+4. If fruit is **`fresh`** with usable confidence:
+   - `range = typical_shelf_life_days` from `fruit_database.json` (e.g. `[14, 30]` for apple).
+   - `remaining_days = max(1, min(typical_max, round(typical_max * confidence)))`.
+   - `shelf_life_status="estimated"`.
+   - This is a **heuristic**, not a probability or an exact expiry.
+5. Storage condition: `ambient` or `refrigerated`; validated strictly; passed
+   through API → pipeline → estimator; recorded as **context only** (no
+   condition-specific durations exist), appended to the explanation as
+   "Estimate assumes {condition} storage."
 
 ---
 
@@ -102,7 +118,19 @@ The output schema is structured and JSON-serializable via `to_dict()`:
       "stabilized_confidence": 0.996,
       "is_uncertain": false,
       "is_locked": false,
-      "shelf_life": "14-29 days",
+      "shelf_life": {
+          "fruit": "apple",
+          "freshness_class": "fresh",
+          "freshness_confidence": 0.973,
+          "shelf_life_status": "estimated",
+          "remaining_days": 29,
+          "typical_min_days": 14,
+          "typical_max_days": 30,
+          "unit": "days",
+          "basis": "fruit_typical_range + freshness_state + freshness_confidence",
+          "storage_condition": "refrigerated",
+          "explanation": "Fresh fruit with high confidence; estimate is close to maximum typical storage."
+      },
       "bounding_box": {"x1": 61, "y1": 49, "x2": 189, "y2": 176},
       "center": [125, 112]
     }
@@ -118,7 +146,37 @@ The output schema is structured and JSON-serializable via `to_dict()`:
 
 ## 6. Performance Benchmarks
 
-Measured on standard CPU execution across sample test images:
-- **Average Pipeline Latency**: `371.88 ms`
-- **Minimum Latency**: `197.05 ms`
-- **Maximum Latency**: `1110.99 ms`
+Per-stage (CPU), real apple image (2 detections):
+- **YOLO detection**: `281.23 ms`
+- **Freshness (EfficientNet)**: `178.12 ms` (~89 ms/fruit)
+- **Shelf-life heuristic**: `< 1.00 ms` (in-memory, O(1))
+- **TOTAL `process_frame`**: `415.67 ms`
+
+End-to-end mean across 6 real validation images: `440.52 ms`
+(min `172.12 ms`, max `998.77 ms`). Shelf-life remains negligible.
+
+## 7. Scientific Honesty
+
+Shelf-life output is an **estimated remaining shelf life** derived from fruit
+metadata + freshness state + freshness confidence + an assumed storage
+condition. It is **not** an exact expiry and **not** a spoilage probability.
+The system does not claim sensor-measured storage history. `remaining_days`
+is `null` whenever the evidence is insufficient (unknown/unsupported/uncertain
+or malformed confidence), and `0` only for expired (rotten/stale) states.
+
+## 8. Testing & Validation
+
+- Unit + integration suites: `tests/test_shelf_life.py`,
+  `tests/test_freshness_shelf_life.py`,
+  `tests/test_detection_pipeline_integration.py`, `tests/test_api.py`.
+- Real-image validation: `scripts/validate_real_images_freshness.py` (6 species).
+- Database validation: `scripts/validate_fruit_database.py` (all 10 fruits OK).
+- Metadata validation is also exercised in `tests/test_shelf_life.py`
+  (`TestMetadataFailureModes`) — missing database, malformed JSON, non-object
+  JSON, missing/invalid typical ranges are all covered and never crash.
+
+Run everything with:
+```
+python -m pytest tests/test_shelf_life.py tests/test_freshness_shelf_life.py \
+    tests/test_detection_pipeline_integration.py tests/test_api.py -q
+```

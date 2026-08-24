@@ -27,36 +27,28 @@ from src.inference.cropper import Cropper, CropperConfig
 from src.inference.detection_tracker import DetectionTracker, TrackerConfig
 from src.inference.fruit_result import FruitResult, MultiFruitResult
 from src.inference.quality import QualityAssessor, QualityConfig, QualityReport
-from src.inference.shelf_life import ShelfLifeEstimator, ShelfLifeConfig
+from src.inference.shelf_life import (
+    ShelfLifeEstimator,
+    ShelfLifeConfig,
+    normalize_storage_condition,
+)
 from src.inference.stabilizer import Stabilizer, StabilizerConfig
 from src.inference.predictor import Predictor
 
 # Freshness label vocabulary passed to each per-fruit stabilizer.
-FRESHNESS_CLASSES = ["fresh", "stale", "rotten"]
+from src.freshness import (
+    FRESH,
+    ROTTEN,
+    UNCERTAIN,
+    DATA_NOT_AVAILABLE,
+    freshness_supported,
+)
 
-# Fruits the current EfficientNet freshness classifier can actually grade.
-#
-# The YOLO detector recognises 10 fruit classes (the Roboflow dataset), but the
-# Phase-1 freshness classifier was trained on a different six-class taxonomy
-# (fresh/rotten x apple/banana/orange). Only these three fruits have a matching
-# freshness classifier. For any other detected fruit the pipeline reports a
-# freshness of ``"unknown"`` (``is_uncertain`` is set appropriately downstream)
-# rather than silently mapping it to the wrong freshness class.
-FRESHNESS_SUPPORTED_FRUITS = frozenset({"apple", "apples", "banana", "bananas", "orange", "oranges"})
-
-
-def freshness_supported(fruit: str) -> bool:
-    """Return whether ``fruit`` has a matching freshness classifier.
-
-    Args:
-        fruit: Detected fruit label (lower-cased internally).
-
-    Returns:
-        True if a dedicated freshness classifier exists for this fruit,
-        False otherwise (freshness will be reported as ``"unknown"``).
-    """
-    clean = (fruit or "").strip().lower()
-    return clean in FRESHNESS_SUPPORTED_FRUITS or clean.rstrip("s") in FRESHNESS_SUPPORTED_FRUITS
+# Production freshness vocabulary (controlled).
+# The stabiliser must know every value the pipeline can emit, including
+# ``"uncertain"`` (below confidence threshold) and ``"data_not_available"``
+# (fruit without a validated freshness model).
+FRESHNESS_CLASSES = [FRESH, ROTTEN, UNCERTAIN, DATA_NOT_AVAILABLE]
 
 
 logger = logging.getLogger(__name__)
@@ -91,6 +83,9 @@ class DetectionPipelineConfig:
         quality: Quality config.
         session_log_dir: Path for session logs.
         save_logs: Whether to log sessions.
+        shelf_life_enabled: Whether per-fruit shelf-life estimation runs.
+        default_storage_condition: Storage assumption recorded when a request
+            omits an explicit condition ("ambient" or "refrigerated").
     """
 
     detector_name: str = "yolo"
@@ -116,6 +111,8 @@ class DetectionPipelineConfig:
     quality: QualityConfig = None
     session_log_dir: str = "logs/session"
     save_logs: bool = True
+    shelf_life_enabled: bool = True
+    default_storage_condition: str = "ambient"
 
     def __post_init__(self) -> None:
         if self.quality is None:
@@ -189,9 +186,7 @@ class DetectionPipeline:
         ))
 
         # Shelf life
-        self.shelf_life = ShelfLifeEstimator(ShelfLifeConfig(
-            fresh_bonus=1.0 - cfg.classification_weight,
-        ))
+        self.shelf_life = ShelfLifeEstimator(ShelfLifeConfig())
 
         # Per-fruit stabilizers (keyed by tracking id)
         self._stabilizers: Dict[int, Stabilizer] = {}
@@ -215,8 +210,23 @@ class DetectionPipeline:
         return self._stabilizers[track_id]
 
 
-    def process_frame(self, frame: np.ndarray) -> MultiFruitResult:
-        """Run the full Phase 4 pipeline on one frame."""
+    def process_frame(
+        self,
+        frame: np.ndarray,
+        storage_condition: Optional[str] = None,
+    ) -> MultiFruitResult:
+        """Run the full Phase 4 pipeline on one frame.
+
+        Args:
+            frame: BGR image.
+            storage_condition: Optional caller-supplied storage assumption
+                (``"ambient"`` or ``"refrigerated"``). Invalid values raise
+                ``ValueError`` BEFORE any inference runs, so API callers can
+                map the rejection to HTTP 400.
+        """
+        # Fail fast on an invalid storage condition (no model work wasted).
+        if storage_condition is not None:
+            normalize_storage_condition(storage_condition)
         h, w = frame.shape[:2]
         # 1. Quality assessment
         quality_report = self.quality_assessor.assess(frame)
@@ -230,7 +240,7 @@ class DetectionPipeline:
         # 4-8. Per fruit: crop, classify, stabilize, fuse, shelf life
         fruit_results: List[FruitResult] = []
         for det in tracked:
-            result = self._process_fruit(frame, det, quality_report, w, h)
+            result = self._process_fruit(frame, det, quality_report, w, h, storage_condition)
             if result is not None:
                 fruit_results.append(result)
 
@@ -249,6 +259,7 @@ class DetectionPipeline:
         quality: QualityReport,
         width: int,
         height: int,
+        storage_condition: Optional[str] = None,
     ) -> Optional[FruitResult]:
         """Crop, classify, stabilize a single detected fruit."""
         # Crop
@@ -264,11 +275,11 @@ class DetectionPipeline:
         crop = crop_result.cropped
         stabilizer = self._get_stabilizer(det.tracking_id)
 
-        # Only grade freshness for fruit types the EfficientNet classifier was
-        # actually trained on. Unsupported detector classes (grape, kiwi, mango,
-        # strawberry, cherry, chickoo, guava) are reported as ``"unknown"`` and
-        # the freshness classifier is NEVER invoked on them, so their crops are
-        # never misclassified as a supported fruit.
+        # Only grade freshness for fruit types with a validated freshness model.
+        # The availability registry (configs/freshness_availability.json) is the
+        # single source of truth. Fruits without fresh/rotten training data
+        # (Kiwi, Mango, Cherry, Chickoo) are NEVER classified - the predictor is
+        # not invoked on them, and freshness is reported as "data_not_available".
         supported = freshness_supported(det.label)
 
         # Adaptive classification: classify every N frames (and always on frame 1).
@@ -296,14 +307,18 @@ class DetectionPipeline:
                 model_version,
             )
         else:
-            # Reuse last classification (tracker fills the gap) — but only for a
-            # fruit the classifier can grade. Unsupported fruits always report
-            # ``"unknown"`` and fall back to detector confidence for fusion.
+            # Reuse last classification (tracker fills the gap) - but only
+            # for a fruit the classifier can grade. Fruits without a
+            # validated freshness model always report "data_not_available"
+            # and fall back to detector confidence for fusion (no ML guess).
             last = self._last_classifications.get(det.tracking_id)
             if supported and last is not None:
                 freshness, raw_conf, latency_ms, model_version = last
             else:
-                freshness = "unsupported" if not supported else "unknown"
+                if not supported:
+                    freshness = DATA_NOT_AVAILABLE
+                else:
+                    freshness = UNCERTAIN
                 raw_conf = det.confidence
                 latency_ms = 0.0
                 model_version = "n/a"
@@ -318,7 +333,7 @@ class DetectionPipeline:
         # Determine final class using stabilized label
         # (majority vote + locking).
         if stabilized.is_uncertain:
-            final_class = "uncertain"
+            final_class = UNCERTAIN
             is_uncertain = True
         else:
             final_class = stabilized.label
@@ -329,6 +344,7 @@ class DetectionPipeline:
             fruit=det.label,
             fused_confidence=fused_conf,
             freshness_class=final_class,
+            storage_condition=storage_condition,
         )
 
         metadata = {

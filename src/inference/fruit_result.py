@@ -1,4 +1,4 @@
-﻿"""Fruit classification result types for FreshSense Phase 4.
+"""Fruit classification result types for FreshSense Phase 4.
 
 Holds per-fruit stabilized classification output after detection, cropping,
 and fusion. Each fruit gets its own independent stabiliser.
@@ -27,7 +27,7 @@ class FruitResult:
         detection: Source detection (box, label, tracking id).
         stabilized: Stabilized prediction from the EMA/vote/lock stabilizer.
         fused_confidence: Detector + classifier fused confidence.
-        freshness_class: "fresh", "stale", or "rotten".
+                freshness_class: "fresh", "rotten", "uncertain", or "data_not_available".
         shelf_life: Estimated remaining shelf life.
         is_uncertain: Whether the prediction was flagged uncertain.
     """
@@ -41,11 +41,15 @@ class FruitResult:
     metadata: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
+        # Production contract: when no validated freshness model exists
+        # for the fruit ("data_not_available") there is NO ML freshness
+        # confidence to report - serialize null, never a fake number.
+        has_model = self.freshness_class != "data_not_available"
         return {
             "tracking_id": self.detection.tracking_id,
             "fruit": self.detection.label,
             "freshness": self.freshness_class,
-            "confidence": self.fused_confidence,
+            "confidence": self.fused_confidence if has_model else None,
             "detection_confidence": self.detection.confidence,
             "stabilized_confidence": self.stabilized.confidence,
             "ema_confidence": self.stabilized.ema_confidence,
@@ -54,7 +58,7 @@ class FruitResult:
             "lock_count": self.stabilized.lock_count,
             "majority_label": self.stabilized.majority_label,
             "vote_counts": self.stabilized.vote_counts,
-            "shelf_life": self.shelf_life.to_range_string() if self.shelf_life else None,
+            "shelf_life": self.shelf_life.to_dict() if self.shelf_life else None,
             "bounding_box": {
                 "x1": self.detection.bbox.x1,
                 "y1": self.detection.bbox.y1,

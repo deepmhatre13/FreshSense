@@ -1,11 +1,12 @@
-"""Validate freshness and shelf-life pipeline across 5 real fruit image species (Phase 14 & Phase 15).
+"""Validate freshness and shelf-life pipeline across 6 real fruit image species (Phase 14 & Phase 15).
 
-Target species:
-    1. Apple
-    2. Grape
-    3. Mango
-    4. Orange
-    5. Guava
+Target species (YOLO-detected; 3 freshness-unsupported, 3 supported):
+    1. Apple    (freshness-classifier supported)
+    2. Orange   (freshness-classifier supported)
+    3. banana   (freshness-classifier supported)
+    4. Grape    (freshness unsupported -> must NOT fabricate a freshness)
+    5. Mango    (freshness unsupported)
+    6. Guava    (freshness unsupported)
 """
 
 import sys
@@ -23,9 +24,10 @@ from configs.config import Config
 
 TEST_IMAGES = [
     ("Apple", "data/detection/test/images/apple_12_jpg.rf.7f4a14511957f2baef662e3855fd513b.jpg"),
+    ("Orange", "data/detection/test/images/Curiosidades-de-las-naranjas_jpg.rf.639f81f684e97cbc5975aae4faa16826.jpg"),
+    ("banana", "data/detection/test/images/ripe-bananas-in-a-wooden-bowl-royalty-free-image-1724469492_avif.rf.5b9c85292363c7945289538dde1e348e.jpg"),
     ("Grape", "data/detection/test/images/Grape-45-_jpeg.rf.3bdf30a4f5e6e9aad80c6551bc5b3804.jpg"),
     ("Mango", "data/detection/test/images/IMG_7533_jpg.rf.a230dd16211d0bd803384770fb3d0742.jpg"),
-    ("Orange", "data/detection/test/images/Curiosidades-de-las-naranjas_jpg.rf.639f81f684e97cbc5975aae4faa16826.jpg"),
     ("Guava", "data/detection/test/images/guava-1-_jpg.rf.db1cd8ae83e739606795761d6fb433cd.jpg"),
 ]
 
@@ -80,7 +82,13 @@ def main():
         for idx, fruit in enumerate(result.fruits, 1):
             det = fruit.detection
             sl = fruit.shelf_life
-            sl_str = sl.to_range_string() if sl else "N/A"
+            if sl:
+                if sl.remaining_days is not None:
+                    sl_str = f"{sl.remaining_days} days (from {sl.typical_min_days}-{sl.typical_max_days})"
+                else:
+                    sl_str = sl.shelf_life_status
+            else:
+                sl_str = "N/A"
             sl_basis = sl.basis if sl else "N/A"
 
             print(f"  Fruit #{idx}: {det.class_name:<10} | Det Conf: {det.confidence:.4f} | BBox: ({det.x1},{det.y1},{det.x2},{det.y2})")

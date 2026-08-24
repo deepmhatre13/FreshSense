@@ -61,6 +61,14 @@ class PredictionResult:
     device: str
     model_version: str
     ready_for_langgraph: bool = True
+    # Diagnostic fields (confidence/uncertainty investigation). These expose raw
+    # logits, the top-2 probabilities and the predicted index so production code
+    # can inspect WHY a prediction becomes uncertain.
+    raw_logits: Optional[List[float]] = None
+    top2_probabilities: Optional[List["Tuple[str, float]"]] = None
+    predicted_class_index: Optional[int] = None
+    is_uncertain: bool = False
+    uncertainty_threshold: float = 0.0
 
     def to_dict(self) -> Dict[str, Union[str, float, List[float], bool]]:
         """Convert to dictionary for LangGraph compatibility.
@@ -80,6 +88,11 @@ class PredictionResult:
             "device": self.device,
             "model_version": self.model_version,
             "ready_for_langgraph": self.ready_for_langgraph,
+            # Diagnostic fields for confidence/uncertainty investigation
+            "is_uncertain": self.is_uncertain,
+            "uncertainty_threshold": self.uncertainty_threshold,
+            "top2_probabilities": self.top2_probabilities,
+            "predicted_class_index": self.predicted_class_index,
         }
 
 
@@ -98,7 +111,7 @@ class Predictor:
         checkpoint_path: Path to best_model.pth.
         config: Config instance (optional, uses default if not provided).
         device: Override device (auto-detected if not specified).
-    """
+            """
 
     def __init__(
         self,
@@ -106,6 +119,7 @@ class Predictor:
         config: Optional[Config] = None,
         device: Optional[torch.device] = None,
         calibration_path: Optional[str] = None,
+        uncertainty_threshold: Optional[float] = None,
     ) -> None:
         self.config = config or Config.from_yaml("configs/settings.yaml")
         self.device = device or self._detect_device()
@@ -124,6 +138,22 @@ class Predictor:
             )
         self.num_classes = len(self.class_names)
         self.model_version = self._extract_model_version()
+
+        # Uncertainty threshold: a prediction is considered *confident* only when
+        # the top-1 softmax probability meets this bar. Below it the
+        # freshness_class is reported as "uncertain" instead of a possibly-wrong
+        # fresh/rotten guess. This value is calibrated from validation data (the
+        # threshold must NOT be tuned against the test set). It may be supplied
+        # via the checkpoint metadata ("uncertainty_threshold") so that models
+        # ship with their own validated threshold; a safe default of 0.5 is used
+        # otherwise (8× the 16-class random-chance rate of 6.25 %).
+        stored_threshold = self.checkpoint.get("uncertainty_threshold")
+        if stored_threshold is not None:
+            self.uncertainty_threshold = float(stored_threshold)
+        elif uncertainty_threshold is not None:
+            self.uncertainty_threshold = float(uncertainty_threshold)
+        else:
+            self.uncertainty_threshold = 0.5
 
         # Build model
         self.model = self._build_model()
@@ -262,8 +292,11 @@ class Predictor:
         architecture_version = self.checkpoint.get("architecture_version", "unknown")
         classifier_type = self.checkpoint.get("classifier_type")
 
-        # Current expected architecture
-        expected_classifier = "1280-256-6"
+        # Current expected architecture: classifier head is 1280 -> 256 -> N
+        # where N = num_classes. The head shape is derived from the checkpoint
+        # class count so any taxonomy size (6, 16, ...) loads cleanly instead of
+        # being hard-coded to the old 6-class build.
+        expected_classifier = f"1280-256-{self.num_classes}"
 
         if classifier_type is not None and classifier_type != expected_classifier:
             logger.error(
@@ -356,18 +389,44 @@ class Predictor:
         # Extract fruit name and freshness
         fruit_name, freshness_class = self._parse_class_name(class_name)
 
+        # Apply uncertainty policy: when the model's top-1 softmax confidence
+        # is below the calibrated threshold, downgrade to "uncertain" rather
+        # than emitting a possibly-wrong fresh/rotten label. The threshold is
+        # calibrated from validation data (NOT the test set). A prediction is
+        # uncertain when the model does not have sufficient evidence.
+        is_uncertain = confidence < self.uncertainty_threshold
+        if is_uncertain:
+            freshness_class = "uncertain"
+
         # Calculate latency
         latency_ms = (time.perf_counter() - start_time) * 1000.0
+
+        # Top-2 for uncertainty/confidence diagnosis: when top-1 is not much
+        # higher than top-2 (e.g. freshness vs rottenness for the same fruit),
+        # the model lacks evidence and a defensible uncertainty policy should
+        # flag the prediction rather than guess.
+        probs = probabilities.cpu().tolist()
+        sorted_idx = sorted(range(len(probs)), key=lambda i: probs[i], reverse=True)
+        top2 = []
+        for idx in sorted_idx[:2]:
+            cls_name = self.class_names[idx] if idx < len(self.class_names) else "unknown"
+            top2.append((cls_name, round(probs[idx], 6)))
+        raw_logits = logits.cpu().squeeze(0).tolist()
 
         return PredictionResult(
             fruit_name=fruit_name,
             freshness_class=freshness_class,
             confidence=confidence,
-            probabilities=probabilities.cpu().numpy().tolist(),
+            probabilities=probs,
             timestamp=time.time(),
             latency_ms=latency_ms,
             device=str(self.device),
             model_version=self.model_version,
+            raw_logits=raw_logits,
+            top2_probabilities=top2,
+            predicted_class_index=predicted_idx,
+            is_uncertain=is_uncertain,
+            uncertainty_threshold=self.uncertainty_threshold,
         )
 
     def _preprocess(self, frame: np.ndarray) -> torch.Tensor:
@@ -386,19 +445,30 @@ class Predictor:
         return self.transform(frame).to(self.device)
 
     def _parse_class_name(self, class_name: str) -> Tuple[str, str]:
-        """Parse class name into fruit name and freshness.
+        """Parse a freshness classifier class name into (fruit_name, freshness).
 
-        Supports both the checkpoint format ("freshapples", "rottenbanana",
-        "staleoranges") and the underscore form ("fresh_apple").
+        Supports the 16-class taxonomy format (``Fruit_fresh`` / ``Fruit_rotten``
+        where the freshness label is a *suffix* after an underscore) as well as
+        the legacy Phase-1 formats.
 
         Args:
-            class_name: Full class name.
+            class_name: Full class name, e.g. ``"Apple_fresh"`` or
+                ``"banana_rotten"``.
 
         Returns:
-            Tuple of (fruit_name, freshness_class).
+            Tuple of (fruit_name, freshness) where freshness is one of
+            ``"fresh"``, ``"rotten"``, ``"stale"``, or ``"unknown"``.
         """
         cleaned = (class_name or "").strip().lower()
 
+        # ---- 16-class format: "Apple_fresh", "banana_rotten" etc. ----
+        # The freshness label is a suffix separated by underscore.
+        for suffix, freshness in (("_fresh", "fresh"), ("_rotten", "rotten"), ("_stale", "stale")):
+            if cleaned.endswith(suffix):
+                fruit = (class_name or "").strip()[:-len(suffix)].strip()
+                return fruit, freshness
+
+        # ---- Legacy format: "freshapples", "rottenbanana" etc. ----
         for prefix in ("fresh", "stale", "rotten"):
             if cleaned == prefix:
                 return cleaned, prefix
@@ -407,7 +477,7 @@ class Predictor:
                 if fruit:
                     return fruit, prefix
 
-        # Underscore fallback: "fresh_apple" -> (apple, fresh)
+        # ---- Legacy underscore format: "fresh_apple" -> (apple, fresh) ----
         parts = (class_name or "").split("_", 1)
         if len(parts) == 2 and parts[0].strip().lower() in ("fresh", "stale", "rotten"):
             return parts[1].strip(), parts[0].strip().lower()

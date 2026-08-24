@@ -1,0 +1,25 @@
+{
+  "tool": "scripts/validate_real_world_dataset.py",
+  "phase": "5",
+  "data_root": "data\\real_world",
+  "images": {
+    "total": 0,
+    "unreadable": [],
+    "class_distribution": {}
+  },
+  "quality": {
+    "images": 0
+  },
+  "legacy_metadata": {
+    "records": 0,
+    "incomplete": []
+  },
+  "canonical_manifest": {
+    "manifest_present": false,
+    "total_rows": 0,
+    "physical_fruit_leakage": [],
+    "session_leakage": []
+  },
+  "verdict": "NOT READY FOR TRAINING",
+  "reason": "data/real_world/accepted/ contains zero images. No dataset has been collected yet; run src/data/collection.py first."
+}

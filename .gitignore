@@ -63,6 +63,13 @@ htmlcov/
 # Temporary
 tmp/
 temp/
+scratch/
+rebuild_*.txt
+rebuild_pid.txt
+test_out.txt
+SmartFreshAI_colab.zip
+yolo11n.pt
+yolo11s.pt
 
 # Build
 dist/

@@ -31,6 +31,7 @@ __all__ = [
     "TrainingConfig",
     "InferenceConfig",
     "DetectionConfig",
+    "ShelfLifeSettings",
     "DEFAULT_CONFIG",
 ]
 
@@ -322,6 +323,36 @@ class DetectionConfig:
         if self.detection_weight < 0 or self.classification_weight < 0:
             raise ValueError("Weights must be non-negative.")
 
+# Storage conditions accepted for shelf-life requests. Kept in sync with
+# src/inference/shelf_life.ALLOWED_STORAGE_CONDITIONS.
+_SHELF_LIFE_STORAGE_CONDITIONS = ("ambient", "refrigerated")
+
+
+@dataclass(frozen=True)
+class ShelfLifeSettings:
+    """Settings for the deterministic shelf-life estimator.
+
+    The estimator is a DETERMINISTIC HEURISTIC over fruit metadata +
+    freshness state + freshness confidence. It is NOT a trained spoilage
+    prediction model, and it holds NO condition-specific duration data.
+
+    Attributes:
+        enabled: When false, the estimator reports an explicit ``disabled``
+            status instead of day estimates.
+        default_storage_condition: Condition assumed when a request omits
+            one. This is a recorded assumption (the system has no sensors);
+            it does not change the numeric estimate.
+    """
+
+    enabled: bool = True
+    default_storage_condition: str = "ambient"
+
+    def __post_init__(self) -> None:
+        if self.default_storage_condition not in _SHELF_LIFE_STORAGE_CONDITIONS:
+            raise ValueError(
+                "default_storage_condition must be one of "
+                f"{list(_SHELF_LIFE_STORAGE_CONDITIONS)}."
+            )
 
 @dataclass(frozen=True)
 class Config:
@@ -336,6 +367,7 @@ class Config:
     inference: InferenceConfig = field(default_factory=InferenceConfig)
     detection: DetectionConfig = field(default_factory=DetectionConfig)
     detection_dataset: DetectionDatasetConfig = field(default_factory=DetectionDatasetConfig)
+    shelf_life: ShelfLifeSettings = field(default_factory=ShelfLifeSettings)
 
     @property
     def device(self) -> torch.device:
@@ -458,6 +490,10 @@ class Config:
                 "detector_workers": self.detection_dataset.detector_workers,
                 "detector_patience": self.detection_dataset.detector_patience,
             },
+            "shelf_life": {
+                "enabled": self.shelf_life.enabled,
+                "default_storage_condition": self.shelf_life.default_storage_condition,
+            }
         }
 
     @classmethod
@@ -480,6 +516,7 @@ class Config:
             inference=InferenceConfig(**inference),
             detection=DetectionConfig(**raw.get("detection", {})),
             detection_dataset=DetectionDatasetConfig(**raw.get("detection_dataset", {})),
+            shelf_life=ShelfLifeSettings(**raw.get("shelf_life", {})),
         )
 
     def save_yaml(self, path: Path | str) -> None:

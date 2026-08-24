@@ -1,0 +1,81 @@
+{
+  "total_candidates": 15811,
+  "exact_duplicates": 7,
+  "unique_images": 15804,
+  "duplicate_groups": [
+    {
+      "sha256": "06b36854bce67acfb3b7b4cb098fc5176ce9193fdb99dbc98ecd54d0b687f8b9",
+      "retained_path": "D:\\SmartFreshAI\\data\\Original Image\\FreshOrange\\FreshOrange (167).jpg",
+      "retained_source": "Mendeley Original Image",
+      "retained_canonical": "Orange_fresh",
+      "duplicate_path": "D:\\SmartFreshAI\\data\\Original Image\\FreshOrange\\FreshOrange (62).jpg",
+      "duplicate_source": "Mendeley Original Image",
+      "duplicate_canonical": "Orange_fresh"
+    },
+    {
+      "sha256": "27d2a953f6ade1100b94519348d4f845ceeaed2eee5c44a7478a19e119712add",
+      "retained_path": "D:\\SmartFreshAI\\data\\Original Image\\FreshOrange\\FreshOrange (168).jpg",
+      "retained_source": "Mendeley Original Image",
+      "retained_canonical": "Orange_fresh",
+      "duplicate_path": "D:\\SmartFreshAI\\data\\Original Image\\FreshOrange\\FreshOrange (63).jpg",
+      "duplicate_source": "Mendeley Original Image",
+      "duplicate_canonical": "Orange_fresh"
+    },
+    {
+      "sha256": "2311566fd04fc9a6962fb0e7381241690637071b0c3dde2eaeb1e12ddc0f838e",
+      "retained_path": "D:\\SmartFreshAI\\data\\Original Image\\FreshOrange\\FreshOrange (27).jpg",
+      "retained_source": "Mendeley Original Image",
+      "retained_canonical": "Orange_fresh",
+      "duplicate_path": "D:\\SmartFreshAI\\data\\Original Image\\FreshOrange\\FreshOrange (77).jpg",
+      "duplicate_source": "Mendeley Original Image",
+      "duplicate_canonical": "Orange_fresh"
+    },
+    {
+      "sha256": "5cfefbb3e4bcbde44b56d5234c08251ca8b96cb3661ed8c86557224b2b0780d3",
+      "retained_path": "D:\\SmartFreshAI\\data\\Original Image\\FreshOrange\\FreshOrange (65).jpg",
+      "retained_source": "Mendeley Original Image",
+      "retained_canonical": "Orange_fresh",
+      "duplicate_path": "D:\\SmartFreshAI\\data\\Original Image\\FreshOrange\\FreshOrange (78).jpg",
+      "duplicate_source": "Mendeley Original Image",
+      "duplicate_canonical": "Orange_fresh"
+    },
+    {
+      "sha256": "e5f34ce96d79fd60c81bb7bcb4e49c34842ee7ee984833400523dc7610bec1c3",
+      "retained_path": "D:\\SmartFreshAI\\data\\Original Image\\FreshOrange\\FreshOrange (66).jpg",
+      "retained_source": "Mendeley Original Image",
+      "retained_canonical": "Orange_fresh",
+      "duplicate_path": "D:\\SmartFreshAI\\data\\Original Image\\FreshOrange\\FreshOrange (79).jpg",
+      "duplicate_source": "Mendeley Original Image",
+      "duplicate_canonical": "Orange_fresh"
+    },
+    {
+      "sha256": "6393fcba5db8693403a26c2b9f30ccdc63646e402bf7b33d5330aa8990951822",
+      "retained_path": "D:\\SmartFreshAI\\data\\Original Image\\FreshOrange\\FreshOrange (74).jpg",
+      "retained_source": "Mendeley Original Image",
+      "retained_canonical": "Orange_fresh",
+      "duplicate_path": "D:\\SmartFreshAI\\data\\Original Image\\FreshOrange\\FreshOrange (87).jpg",
+      "duplicate_source": "Mendeley Original Image",
+      "duplicate_canonical": "Orange_fresh"
+    },
+    {
+      "sha256": "0a5a90723e33b4fb170a372be2c87b6620bd7e45f156af1aee41afb45c92bd1f",
+      "retained_path": "D:\\SmartFreshAI\\data\\Original Image\\FreshOrange\\FreshOrange (75).jpg",
+      "retained_source": "Mendeley Original Image",
+      "retained_canonical": "Orange_fresh",
+      "duplicate_path": "D:\\SmartFreshAI\\data\\Original Image\\FreshOrange\\FreshOrange (88).jpg",
+      "duplicate_source": "Mendeley Original Image",
+      "duplicate_canonical": "Orange_fresh"
+    }
+  ],
+  "source_to_source_duplicates": {
+    "Mendeley Original Image -> Mendeley Original Image": 7
+  },
+  "retained_source": {
+    "Mendeley Original Image": 2393,
+    "Quality Dataset (Fresh VS Rotten)": 60,
+    "Kaggle Fresh and Rotten Fruits Benchmark": 13351
+  },
+  "discarded_source": {
+    "Mendeley Original Image": 7
+  }
+}

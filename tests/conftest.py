@@ -10,3 +10,10 @@ if str(REPO_ROOT) not in sys.path:
 
 # Path to the trained model checkpoint, used by integration-style tests.
 CHECKPOINT_PATH = REPO_ROOT / "models" / "checkpoints" / "best_model.pth"
+
+# Path to the 16-class freshness checkpoint (covers all fruits with valid
+# training data: Apple, Banana, Grape, Guava, Jujube, Orange, Pomegranate,
+# Strawberry).
+FRESHNESS_CHECKPOINT_PATH = (
+    REPO_ROOT / "models" / "checkpoints" / "freshness_efficientnet_b0_16class.pth"
+)

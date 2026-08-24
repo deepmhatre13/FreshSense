@@ -100,8 +100,13 @@ def main():
         print(f"   - Freshness Output   : {fruit.freshness_class}")
         print(f"   - Fused Confidence   : {fruit.fused_confidence:.4f}")
         if fruit.shelf_life:
-            print(f"   - Shelf Life Output  : {fruit.shelf_life.to_range_string()}")
-            print(f"   - Shelf Life Basis   : {fruit.shelf_life.basis} ({fruit.shelf_life.basis_type})")
+            sl = fruit.shelf_life
+            if sl.remaining_days is not None:
+                sl_str = f"{sl.remaining_days} days (from {sl.typical_min_days}-{sl.typical_max_days})"
+            else:
+                sl_str = sl.shelf_life_status
+            print(f"   - Shelf Life         : {sl_str}")
+            print(f"   - Shelf Life Basis   : {sl.basis} ({sl.basis_type})")
 
     pipeline.shutdown()
     print("\n==================================================")

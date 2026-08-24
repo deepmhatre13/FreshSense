@@ -1,0 +1,142 @@
+{
+  "dataset_version": "1.0.0",
+  "generated_at": "2026-08-22T16:41:17.952804+00:00",
+  "total_images": 15804,
+  "split_counts": {
+    "train": 11055,
+    "valid": 2374,
+    "test": 2375
+  },
+  "class_counts": {
+    "Apple_fresh": {
+      "train": 1606,
+      "valid": 344,
+      "test": 345,
+      "total": 2295
+    },
+    "Apple_rotten": {
+      "train": 2201,
+      "valid": 472,
+      "test": 473,
+      "total": 3146
+    },
+    "Grape_fresh": {
+      "train": 144,
+      "valid": 31,
+      "test": 30,
+      "total": 205
+    },
+    "Grape_rotten": {
+      "train": 143,
+      "valid": 31,
+      "test": 30,
+      "total": 204
+    },
+    "Kiwi_fresh": {
+      "train": 0,
+      "valid": 0,
+      "test": 0,
+      "total": 0
+    },
+    "Kiwi_rotten": {
+      "train": 4,
+      "valid": 1,
+      "test": 1,
+      "total": 6
+    },
+    "Mango_fresh": {
+      "train": 0,
+      "valid": 0,
+      "test": 0,
+      "total": 0
+    },
+    "Mango_rotten": {
+      "train": 1,
+      "valid": 1,
+      "test": 1,
+      "total": 3
+    },
+    "Orange_fresh": {
+      "train": 1434,
+      "valid": 309,
+      "test": 307,
+      "total": 2050
+    },
+    "Orange_rotten": {
+      "train": 1366,
+      "valid": 293,
+      "test": 293,
+      "total": 1952
+    },
+    "Strawberry_fresh": {
+      "train": 142,
+      "valid": 30,
+      "test": 31,
+      "total": 203
+    },
+    "Strawberry_rotten": {
+      "train": 142,
+      "valid": 30,
+      "test": 31,
+      "total": 203
+    },
+    "banana_fresh": {
+      "train": 1517,
+      "valid": 325,
+      "test": 327,
+      "total": 2169
+    },
+    "banana_rotten": {
+      "train": 2070,
+      "valid": 445,
+      "test": 444,
+      "total": 2959
+    },
+    "cherry_fresh": {
+      "train": 2,
+      "valid": 1,
+      "test": 1,
+      "total": 4
+    },
+    "cherry_rotten": {
+      "train": 3,
+      "valid": 1,
+      "test": 1,
+      "total": 5
+    },
+    "chickoo_fresh": {
+      "train": 0,
+      "valid": 0,
+      "test": 0,
+      "total": 0
+    },
+    "chickoo_rotten": {
+      "train": 0,
+      "valid": 0,
+      "test": 0,
+      "total": 0
+    },
+    "guava_fresh": {
+      "train": 140,
+      "valid": 30,
+      "test": 30,
+      "total": 200
+    },
+    "guava_rotten": {
+      "train": 140,
+      "valid": 30,
+      "test": 30,
+      "total": 200
+    }
+  },
+  "exact_duplicates_removed": 7,
+  "near_duplicates_marked": 23974,
+  "rejected_summary": {
+    "unsupported_fruit": 810,
+    "no_fruit_identity": 287,
+    "label_contradiction": 2
+  },
+  "dataset_hash": "d9d3314e92a9c4e9a487544fbf2f6686d373d926b9914562e06ab2886835ec33",
+  "leakage_check": "PASS (Zero Cross-Split Leakage)",
+  "validation_status": "PASS"
+}

@@ -60,8 +60,15 @@ def main():
         print(f"  BBox (x1,y1,x2,y2): ({det.x1}, {det.y1}, {det.x2}, {det.y2})")
         print(f"  Freshness State : {fruit.freshness_class}")
         print(f"  Fused Confidence: {fruit.fused_confidence:.4f}")
-        if fruit.shelf_life:
-            print(f"  Est. Shelf Life : {fruit.shelf_life.to_range_string()} ({fruit.shelf_life.basis_type})")
+        sl = fruit.shelf_life
+        if sl:
+            if sl.remaining_days is not None:
+                sl_str = f"{sl.remaining_days} days"
+            else:
+                sl_str = sl.shelf_life_status
+        else:
+            sl_str = "N/A"
+        print(f"  Shelf Life: {sl_str}")
 
     pipeline.shutdown()
     print("\n==================================================")

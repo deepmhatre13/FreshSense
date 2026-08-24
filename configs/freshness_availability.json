@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0.0",
+  "status_enum": ["AVAILABLE", "INSUFFICIENT_DATA", "NOT_AVAILABLE"],
+  "description": "Single authoritative registry of which fruits have a validated freshness ML model. A fruit is only AVAILABLE when legitimate fresh AND rotten training data exist in the repository and a trained freshness model has been produced for it. This file is the ONE source of truth consulted by the prediction pipeline, the API, the webcam scanner normalization, and the test suite. Do not duplicate this decision elsewhere.",
+  "decision_policy": "AVAILABLE requires a valid fresh/rotten dataset with sufficient per-class counts to train a Transfer-Learning EfficientNet-B0 freshness classifier, AND a trained 16-class model produced from it. Fruits without valid fresh data are NOT_AVAILABLE (never guessed from appearance). Fruits with only residual/ambiguous data are INSUFFICIENT_DATA and treated as NOT_AVAILABLE for production inference.",
+  "fruits": {
+    "Apple": {
+      "class_id": "Apple_fresh/Apple_rotten",
+      "availability": "AVAILABLE",
+      "source": "Mendeley Original Image (200 fresh / 200 rotten, explicit labels)",
+      "confidence_vocabulary": "fresh|rotten|uncertain"
+    },
+    "Banana": {
+      "class_id": "banana_fresh/banana_rotten",
+      "availability": "AVAILABLE",
+      "source": "Mendeley Original Image (200 fresh / 200 rotten, explicit labels)",
+      "confidence_vocabulary": "fresh|rotten|uncertain"
+    },
+    "Grape": {
+      "class_id": "Grape_fresh/Grape_rotten",
+      "availability": "AVAILABLE",
+      "source": "Mendeley Original Image (200 fresh / 200 rotten, explicit labels)",
+      "confidence_vocabulary": "fresh|rotten|uncertain"
+    },
+    "Guava": {
+      "class_id": "guava_fresh/guava_rotten",
+      "availability": "AVAILABLE",
+      "source": "Mendeley Original Image (200 fresh / 200 rotten, explicit labels)",
+      "confidence_vocabulary": "fresh|rotten|uncertain"
+    },
+    "Orange": {
+      "class_id": "Orange_fresh/Orange_rotten",
+      "availability": "AVAILABLE",
+      "source": "Mendeley Original Image (200 fresh / 200 rotten, explicit labels)",
+      "confidence_vocabulary": "fresh|rotten|uncertain"
+    },
+    "Strawberry": {
+      "class_id": "Strawberry_fresh/Strawberry_rotten",
+      "availability": "AVAILABLE",
+      "source": "Mendeley Original Image (200 fresh / 200 rotten, explicit labels)",
+      "confidence_vocabulary": "fresh|rotten|uncertain"
+    },
+    "Jujube": {
+      "class_id": "Jujube_fresh/Jujube_rotten",
+      "availability": "AVAILABLE_DETECTOR_UNSUPPORTED",
+      "source": "Mendeley Original Image (200 fresh / 200 rotten, explicit labels). Valid training data exists; however the frozen YOLO detector does not emit a Jujube bounding box, so production image/webcam inference can never surface it and therefore returns data_not_available.",
+      "confidence_vocabulary": "data_not_available"
+    },
+    "Pomegranate": {
+      "class_id": "Pomegranate_fresh/Pomegranate_rotten",
+      "availability": "AVAILABLE_DETECTOR_UNSUPPORTED",
+      "source": "Mendeley Original Image (200 fresh / 200 rotten, explicit labels). Valid training data exists; however the frozen YOLO detector does not emit a Pomegranate bounding box, so production image/webcam inference can never surface it and returns data_not_available.",
+      "confidence_vocabulary": "data_not_available"
+    },
+    "Kiwi": {
+      "class_id": null,
+      "availability": "NOT_AVAILABLE",
+      "source": "Only Quality Dataset residual (0 fresh / 6 rotten). No valid fresh training data exists, so Kiwi freshness is never guessed.",
+      "confidence_vocabulary": "data_not_available"
+    },
+    "Mango": {
+      "class_id": null,
+      "availability": "NOT_AVAILABLE",
+      "source": "Only Quality Dataset residual (0 fresh / 3 rotten). No valid fresh training data exists, so Mango freshness is never guessed.",
+      "confidence_vocabulary": "data_not_available"
+    },
+    "Cherry": {
+      "class_id": null,
+      "availability": "NOT_AVAILABLE",
+      "source": "Only Quality Dataset residuals (4 fresh / 5 rotten) — insufficient for production training. Cherry freshness is never guessed.",
+      "confidence_vocabulary": "data_not_available"
+    },
+    "Chickoo": {
+      "class_id": null,
+      "availability": "NOT_AVAILABLE",
+      "source": "No valid fresh/rotten training data. Chickoo freshness is never guessed.",
+      "confidence_vocabulary": "data_not_available"
+    }
+  }
+}

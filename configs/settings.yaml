@@ -95,3 +95,14 @@ detection_dataset:
   detector_device: auto
   detector_workers: 4
   detector_patience: 10
+
+# Shelf-Life Estimator Settings (Phase 4)
+#
+# DETERMINISTIC METADATA HEURISTIC -- NOT a trained spoilage prediction model.
+# Estimates come only from fruit_database.json typical ranges scaled by
+# freshness confidence. There are NO condition-specific multipliers anywhere
+# in this repository, so `default_storage_condition` is a recorded ASSUMPTION
+# (context shown in API responses); it does not change the numeric estimate.
+shelf_life:
+  enabled: true
+  default_storage_condition: "ambient"

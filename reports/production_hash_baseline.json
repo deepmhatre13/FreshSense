@@ -1,0 +1,20 @@
+{
+  "best_model.pth": {
+    "path": "D:\\SmartFreshAI\\models\\checkpoints\\best_model.pth",
+    "sha256": "e7f30d6387c1c3befbc21ab28dc186602b743340cdb15ea49c5180c696f475af",
+    "size": 20295943,
+    "timestamp": "2026-08-22T16:34:19.401849+00:00"
+  },
+  "best.pt": {
+    "path": "D:\\SmartFreshAI\\models\\detection\\detector\\weights\\best.pt",
+    "sha256": "0dcfd7a50c4a50a86252a746d31967c154ae61f8c2f369d8b67bf47cc0c8184b",
+    "size": 5474714,
+    "timestamp": "2026-08-22T16:34:19.418799+00:00"
+  },
+  "legacy_dataset_manifest": {
+    "path": "D:\\SmartFreshAI\\data\\raw\\dataset\\dataset",
+    "sha256": "3d572be07361752e8cd31fa1e8a5cd3f8f80fc7b72d6da6032662a85fb83b03b",
+    "total_files": 13351,
+    "timestamp": "2026-08-22T16:34:21.901015+00:00"
+  }
+}

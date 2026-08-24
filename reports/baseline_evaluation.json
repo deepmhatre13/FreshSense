@@ -1,0 +1,97 @@
+{
+  "status": "OK",
+  "checkpoint": "models\\checkpoints\\best_model.pth",
+  "data_source": "class-folder:data\\raw\\dataset\\dataset\\test",
+  "notes": [
+    "The default raw benchmark split lacks physical_fruit_id metadata, so grouped-split leakage cannot be verified for it; build the canonical real-world benchmark (docs/REAL_WORLD_DATASET.md) for authoritative numbers."
+  ],
+  "total_samples": 2698,
+  "class_distribution": {
+    "freshapples": 395,
+    "freshbanana": 381,
+    "freshoranges": 388,
+    "rottenapples": 601,
+    "rottenbanana": 530,
+    "rottenoranges": 403
+  },
+  "accuracy": 0.983692,
+  "macro_precision": 0.984809,
+  "macro_recall": 0.982916,
+  "macro_f1": 0.983758,
+  "weighted_f1": 0.98365,
+  "balanced_accuracy": 0.982916,
+  "per_class_precision": {
+    "freshapples": 0.989796,
+    "freshbanana": 0.994778,
+    "freshoranges": 0.977041,
+    "rottenapples": 0.965854,
+    "rottenbanana": 0.99434,
+    "rottenoranges": 0.987047
+  },
+  "per_class_recall": {
+    "freshapples": 0.982278,
+    "freshbanana": 1.0,
+    "freshoranges": 0.987113,
+    "rottenapples": 0.988353,
+    "rottenbanana": 0.99434,
+    "rottenoranges": 0.945409
+  },
+  "per_class_f1": {
+    "freshapples": 0.986023,
+    "freshbanana": 0.997382,
+    "freshoranges": 0.982051,
+    "rottenapples": 0.976974,
+    "rottenbanana": 0.99434,
+    "rottenoranges": 0.965779
+  },
+  "confusion_matrix": [
+    [
+      388,
+      0,
+      0,
+      7,
+      0,
+      0
+    ],
+    [
+      0,
+      381,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      383,
+      1,
+      0,
+      4
+    ],
+    [
+      4,
+      0,
+      1,
+      594,
+      1,
+      1
+    ],
+    [
+      0,
+      2,
+      0,
+      1,
+      527,
+      0
+    ],
+    [
+      0,
+      0,
+      8,
+      12,
+      2,
+      381
+    ]
+  ]
+}

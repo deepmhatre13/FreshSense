@@ -382,3 +382,92 @@ def test_production_models_not_modified():
     yolo_best = Path(r"D:\SmartFreshAI\models\detection\detector\weights\best.pt")
     assert best_model.exists()
     assert yolo_best.exists()
+
+
+# ---------- near-duplicate regression (Phase 6/7 audit) ----------
+
+def _diag_make_hash(bits_set):
+    """64-char binary hash with 1-bits at the given positions."""
+    chars = ["0"] * 64
+    for b in bits_set:
+        chars[b] = "1"
+    return "".join(chars)
+
+
+def _diag_cand(path, phash):
+    return CandidateImage(
+        path=path, source_dataset="T", source_label="x",
+        canonical_class="Apple_fresh", fruit="Apple",
+        freshness_state="fresh", license="CC0",
+        source_url="http://example.com",
+        sha256="sha_" + path, perceptual_hash=phash,
+        width=100, height=100, file_size=1000,
+    )
+
+
+def test_unrelated_images_not_grouped(tmp_path):
+    """CASE C: two visually unrelated images must NOT be near duplicates."""
+    rng = np.random.default_rng(7)
+    pa = tmp_path / "a.jpg"
+    pb = tmp_path / "b.jpg"
+    cv2.imwrite(str(pa), rng.integers(0, 256, (64, 64, 3), dtype=np.uint8))
+    cv2.imwrite(str(pb), rng.integers(0, 256, (64, 64, 3), dtype=np.uint8))
+    report = find_near_duplicates([pa, pb], max_distance=6, path_obj=True)
+    assert report.near_duplicate_pairs == 0
+    assert report.near_duplicate_groups == 0
+
+
+def test_cross_class_same_bucket_not_merged():
+    """CASE D: images sharing an 8-bit pHash bucket but with full Hamming
+    distance > max_distance must NOT be merged (cross-class false-positive
+    prevention)."""
+    h1 = _diag_make_hash({8})
+    h2 = _diag_make_hash({10, 11, 12, 13, 14, 15, 16, 17})
+    assert h1[:8] == h2[:8]  # same bucket prefix
+    from src.data.freshness_dataset_builder import hamming_distance
+    assert hamming_distance(h1, h2) > 6
+    cands = [_diag_cand("apple/1.jpg", h1), _diag_cand("banana/1.jpg", h2)]
+    cands[0].canonical_class = "Apple_fresh"
+    cands[1].canonical_class = "banana_fresh"
+    report = find_near_duplicates(cands, max_distance=6)
+    assert report.near_duplicate_pairs == 0
+    assert report.near_duplicate_groups == 0
+
+
+def test_transitive_chain_not_merged():
+    """CASE E: A~B, B~C, but A!~C must NOT merge all three into one
+    equivalence class. Star clustering keeps A-C separate."""
+    from src.data.freshness_dataset_builder import hamming_distance
+    a = _diag_make_hash({10, 11, 12, 13})
+    b = _diag_make_hash({10, 11, 12, 14})
+    c = _diag_make_hash({10, 11, 12, 14, 15, 16, 17, 18, 19})
+    assert hamming_distance(a, b) <= 6
+    assert hamming_distance(b, c) <= 6
+    assert hamming_distance(a, c) > 6
+    cands = [_diag_cand("trans/A.jpg", a),
+             _diag_cand("trans/B.jpg", b),
+             _diag_cand("trans/C.jpg", c)]
+    report = find_near_duplicates(cands, max_distance=6)
+    grouped_paths = []
+    for g in report.groups:
+        grouped_paths.append({m["path"] for m in g["members"]})
+    # A and B grouped together
+    assert any({"trans/A.jpg", "trans/B.jpg"} <= g for g in grouped_paths)
+    # A and C must NOT share a group
+    assert not any({"trans/A.jpg", "trans/C.jpg"} <= g for g in grouped_paths)
+
+
+def test_near_duplicate_detection_is_deterministic():
+    """Same inputs -> identical groups, independent of dict ordering."""
+    a = _diag_make_hash({1, 2, 3})
+    b = _diag_make_hash({1, 2, 4})
+    cands1 = [_diag_cand("x/1.jpg", a), _diag_cand("x/2.jpg", b)]
+    cands2 = [_diag_cand("x/2.jpg", b), _diag_cand("x/1.jpg", a)]
+    r1 = find_near_duplicates(cands1, max_distance=6)
+    r2 = find_near_duplicates(cands2, max_distance=6)
+    assert r1.near_duplicate_groups == r2.near_duplicate_groups
+    assert r1.near_duplicate_pairs == r2.near_duplicate_pairs
+    g1 = sorted(m["path"] for m in r1.groups[0]["members"])
+    g2 = sorted(m["path"] for m in r2.groups[0]["members"])
+    assert g1 == g2
+

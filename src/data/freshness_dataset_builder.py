@@ -988,21 +988,71 @@ def find_near_duplicates(
         bucket_neighbors[bk] = neighbors
 
     # Verified candidate edges: (id_a, id_b, dist) with full-hash dist <= threshold.
+    #
+    # Performance-critical section (15k+ images):
+    #   - Each unordered bucket pair is enumerated EXACTLY ONCE (within-bucket
+    #     pairs via combinations; cross-bucket pairs only when other_key >
+    #     bucket_key), so no global "seen" set of millions of pair tuples is
+    #     required (the previous implementation allocated a sorted tuple per
+    #     candidate pair and grew to multiple GB of RAM).
+    #   - Binary hashes are converted to ints once and compared with
+    #     popcount(x ^ y); non-binary hashes (e.g., synthetic test values)
+    #     transparently fall back to the character-wise hamming_distance().
     edges: list[tuple] = []
-    seen_edges: set = set()
-    for bucket_key, bucket_entries in buckets.items():
-        for other_key in bucket_neighbors[bucket_key]:
-            for id_a, ha, _ in bucket_entries:
-                for id_b, hb, _ in buckets[other_key]:
-                    if id_a == id_b:
-                        continue
-                    pair_key = tuple(sorted([id_a, id_b]))
-                    if pair_key in seen_edges:
-                        continue
-                    seen_edges.add(pair_key)
-                    dist = hamming_distance(ha, hb)
-                    if dist <= max_distance:
-                        edges.append((id_a, id_b, dist))
+
+    int_values: dict[str, int] = {}
+    all_binary = True
+    for ident, ph, _ in entries:
+        try:
+            int_values[ph] = int(ph, 2)
+        except ValueError:
+            all_binary = False
+            break
+
+    for bucket_key, members in buckets.items():
+        n = len(members)
+        if all_binary:
+            vals = [int_values[ph] for _, ph, _ in members]
+            # Within-bucket unordered pairs, each exactly once.
+            for i in range(n):
+                id_a, ha, _ = members[i]
+                va = vals[i]
+                for j in range(i + 1, n):
+                    id_b, hb, _ = members[j]
+                    d = (va ^ vals[j]).bit_count()
+                    if d <= max_distance:
+                        edges.append((id_a, id_b, d))
+            # Cross-bucket pairs: lexicographic guard keeps each unordered
+            # bucket pair unique across the whole scan.
+            for other_key in bucket_neighbors[bucket_key]:
+                if other_key == bucket_key or other_key < bucket_key:
+                    continue
+                other_members = buckets[other_key]
+                other_vals = [int_values[ph] for _, ph, _ in other_members]
+                for i in range(n):
+                    id_a, ha, _ = members[i]
+                    va = vals[i]
+                    for j, (id_b, hb, _) in enumerate(other_members):
+                        d = (va ^ other_vals[j]).bit_count()
+                        if d <= max_distance:
+                            edges.append((id_a, id_b, d))
+        else:
+            # Fallback path for non-binary synthetic hashes (unit tests).
+            seen_edges: set = set()
+            for bucket_key_fb, bucket_entries in buckets.items():
+                for other_key in bucket_neighbors[bucket_key_fb]:
+                    for id_a, ha, _ in bucket_entries:
+                        for id_b, hb, _ in buckets[other_key]:
+                            if id_a == id_b:
+                                continue
+                            pair_key = tuple(sorted([id_a, id_b]))
+                            if pair_key in seen_edges:
+                                continue
+                            seen_edges.add(pair_key)
+                            dist = hamming_distance(ha, hb)
+                            if dist <= max_distance:
+                                edges.append((id_a, id_b, dist))
+            break
 
     # Representative-anchored (star) clustering. Every member is *directly*
     # within max_distance of the anchor; no transitive chaining across anchors.
@@ -1382,9 +1432,9 @@ def build_canonical_dataset(
                 "near_duplicates_marked": near_dup_report.near_duplicate_pairs,
             },
             "rejected_summary": rejected_summary,
-            "leakage_policy": "Zero cross-split hash leakage enforced",
+            "leakage_policy": "Zero cross-split SHA256 leakage enforced; same-label near-duplicate groups kept within one split",
             "label_mapping_policy": "Strict fresh vs rot mapping; ambiguous labels rejected",
-            "group_split_policy": "No session metadata; stratified split by class with fixed seed=42",
+            "group_split_policy": "No session metadata; stratified split by class with fixed seed=42; near-dup groups enforced same-split WITHIN a class (cross-class perceptual clusters may span splits by design)",
         }
         with open(output_dir / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=2)
@@ -1588,18 +1638,71 @@ def validate_canonical_dataset(
     # 5. No SHA256 leakage (same check)
     checks["no_sha256_leakage"] = checks["no_cross_split_duplicates"]
 
-    # 6. Near-duplicate review report exists
+    # 6. Near-duplicate review report exists AND no known near-duplicate
+    #    group spans more than one split (leakage verification).
     nd_path = ROOT_DIR / "reports" / "freshness_near_duplicate_review.json"
     checks["near_dup_report_exists"] = {
         "passed": nd_path.exists(),
         "detail": str(nd_path),
     }
+    if nd_path.exists():
+        try:
+            with open(nd_path, "r", encoding="utf-8") as f:
+                nd_report = json.load(f)
+            ph_to_meta: dict[str, list] = {}
+            mp = data_dir / "dataset_manifest.json"
+            if mp.exists():
+                with open(mp, "r", encoding="utf-8") as f:
+                    for e in json.load(f).get("accepted_entries", []):
+                        ph = e.get("perceptual_hash", "")
+                        if ph:
+                            ph_to_meta.setdefault(ph, []).append(e)
+            # Only SAME-CLASS groups spanning splits constitute true leakage:
+            # near-duplicate images sharing one label must never be separated
+            # into train/valid/test (inflates metrics). Cross-class perceptual
+            # clusters (e.g., Apple_fresh vs Apple_rotten look alike at 8x8
+            # dHash granularity) are distinct labeled specimens and are ALLOWED
+            # to span splits by design -- separating them is desirable.
+            leaking_groups = []
+            cross_class_groups = 0
+            for g in nd_report.get("groups", []):
+                member_hashes = {m.get("pHash", "") for m in g.get("members", [])}
+                cls_set: set = set()
+                split_set: set = set()
+                matched = False
+                for mh in member_hashes:
+                    for e in ph_to_meta.get(mh, []):
+                        matched = True
+                        cls_set.add(e.get("canonical_class"))
+                        split_set.add(e.get("split"))
+                if not matched or len(split_set) <= 1:
+                    continue
+                if len(cls_set) == 1:
+                    leaking_groups.append((sorted(cls_set), sorted(split_set)))
+                else:
+                    cross_class_groups += 1
+            checks["no_near_dup_cross_split"] = {
+                "passed": len(leaking_groups) == 0,
+                "detail": (
+                    f"No same-label near-duplicate group spans splits "
+                    f"({cross_class_groups} benign cross-class clusters span splits)"
+                    if not leaking_groups
+                    else f"{len(leaking_groups)} SAME-LABEL groups span splits, e.g. {leaking_groups[:3]}"
+                ),
+            }
+        except (json.JSONDecodeError, OSError) as exc:
+            checks["no_near_dup_cross_split"] = {
+                "passed": False,
+                "detail": f"Could not parse near-duplicate report: {exc}",
+            }
+
 
     # 7. Provenance exists in metadata
     manifest_path = data_dir / "dataset_manifest.json"
     provenance_ok = False
     license_ok = False
     url_ok = False
+    entries: list = []
     if manifest_path.exists():
         with open(manifest_path, "r", encoding="utf-8") as f:
             manifest = json.load(f)
@@ -1619,6 +1722,66 @@ def validate_canonical_dataset(
         "passed": True,
         "detail": f"{len(rejected)} rejected entries (ambiguity explicitly tracked)",
     }
+
+    # 8b. metadata.json matches actual filesystem counts
+    meta_path = data_dir / "metadata.json"
+    fs_counts: dict[str, dict[str, int]] = {}
+    for cls in expected:
+        fs_counts[cls] = {}
+        for split in ("train", "valid", "test"):
+            d = data_dir / split / cls
+            fs_counts[cls][split] = (
+                sum(1 for p in d.glob("*") if p.is_file()) if d.exists() else 0
+            )
+    if meta_path.exists():
+        with open(meta_path, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+        summary = meta.get("class_summary", {})
+        mismatches = []
+        for cls in sorted(expected):
+            m = summary.get(cls)
+            if not isinstance(m, dict):
+                mismatches.append(f"{cls}: absent from metadata")
+                continue
+            for split in ("train", "valid", "test"):
+                recorded = int(m.get(split, -1))
+                actual = fs_counts[cls][split]
+                if recorded != actual:
+                    mismatches.append(f"{cls}.{split}: metadata={recorded} filesystem={actual}")
+        checks["metadata_matches_filesystem"] = {
+            "passed": len(mismatches) == 0,
+            "detail": "All class/split counts match" if not mismatches
+                      else "; ".join(mismatches[:5]) + (f" (+{len(mismatches) - 5} more)" if len(mismatches) > 5 else ""),
+        }
+    else:
+        checks["metadata_matches_filesystem"] = {
+            "passed": False,
+            "detail": "metadata.json not found",
+        }
+
+    # 8c. dataset_manifest.json matches filesystem (every accepted entry copied)
+    if manifest_path.exists():
+        missing_files = []
+        bad_entries = 0
+        for e in entries:
+            rel = e.get("path")
+            if not rel:
+                bad_entries += 1
+                continue
+            dest_file = data_dir / rel
+            if not dest_file.exists():
+                missing_files.append(rel)
+        checks["manifest_matches_filesystem"] = {
+            "passed": len(missing_files) == 0 and bad_entries == 0 and len(entries) > 0,
+            "detail": f"{len(entries)} entries all present on disk" if not missing_files and bad_entries == 0 and entries
+                      else f"{len(missing_files)} missing files, {bad_entries} malformed entries",
+        }
+    else:
+        checks["manifest_matches_filesystem"] = {
+            "passed": False,
+            "detail": "dataset_manifest.json not found",
+        }
+
 
     # 9. Immutability checks (against recorded baseline)
     immutability = verify_production_hashes()

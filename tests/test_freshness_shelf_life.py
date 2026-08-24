@@ -71,17 +71,26 @@ class TestFreshnessAndShelfLife:
             assert res.confidence > 0.5
 
     def test_3_supported_fruit(self):
-        """Apple, Banana, Orange must be recognized as freshness supported."""
+        """Fruits with validated freshness models must be recognized as supported."""
         assert freshness_supported("apple") is True
         assert freshness_supported("Apple") is True
         assert freshness_supported("banana") is True
         assert freshness_supported("orange") is True
+        assert freshness_supported("grape") is True
+        assert freshness_supported("guava") is True
+        assert freshness_supported("strawberry") is True
 
     def test_4_unsupported_fruit(self):
-        """Grape, Mango, Guava, etc. must be reported as unsupported."""
-        assert freshness_supported("grape") is False
-        assert freshness_supported("mango") is False
-        assert freshness_supported("guava") is False
+        """Fruits WITHOUT validated fresh/rotten training data -> NOT supported.
+
+        Kiwi, Mango, Cherry and Chickoo have no usable fresh/rotten training
+        set, so they must NEVER produce a freshness guess. The detector can
+        still detect them, but the pipeline reports ``data_not_available``.
+        Jujube/Pomegranate have validated training data but are not emitted by
+        the frozen detector, so the API also reports ``data_not_available``.
+        """
+        for fruit in ("kiwi", "mango", "cherry", "chickoo", "jujube", "pomegranate"):
+            assert freshness_supported(fruit) is False, f"{fruit} must not be supported"
         assert freshness_supported("kiwi") is False
 
     def test_5_freshness_output_contract(self):
@@ -107,24 +116,29 @@ class TestFreshnessAndShelfLife:
 
         assert isinstance(est, ShelfLifeEstimate)
         assert est.fruit == "apple"
-        assert est.min_days > 0
-        assert est.max_days >= est.min_days
-        assert est.basis_type == "metadata_heuristic"
+        assert est.remaining_days is not None
+        assert est.remaining_days > 0
+        assert est.basis == "fruit_typical_range + freshness_state + freshness_confidence"
+        assert est.shelf_life_status == "estimated"
 
     def test_7_invalid_shelf_life_values(self):
-        """Rotten or unsupported fruits must not produce negative or invalid shelf-life days."""
+        """Rotten or unavailable fruits must not produce invalid shelf-life days."""
         estimator = ShelfLifeEstimator(ShelfLifeConfig())
         
-        # Rotten fruit -> 0 days
+        # Rotten fruit -> 0 days (expired)
         rotten_est = estimator.estimate(fruit="apple", fused_confidence=0.90, freshness_class="rotten")
-        assert rotten_est.min_days == 0
-        assert rotten_est.max_days == 0
+        assert rotten_est.remaining_days == 0
+        assert rotten_est.shelf_life_status == "expired"
 
-        # Unsupported fruit -> typical range scaled by confidence with explicit basis
-        unsupported_est = estimator.estimate(fruit="guava", fused_confidence=0.80, freshness_class="unsupported")
-        assert unsupported_est.min_days >= 0
-        assert unsupported_est.max_days >= unsupported_est.min_days
-        assert "freshness model unsupported" in unsupported_est.basis
+        # data_not_available fruit -> null days, data_not_available status (required contract)
+        dna_est = estimator.estimate(fruit="mango", fused_confidence=0.0, freshness_class="data_not_available")
+        assert dna_est.remaining_days is None
+        assert dna_est.shelf_life_status == "data_not_available"
+
+        # uncertain fruit -> null days, uncertain status
+        unc_est = estimator.estimate(fruit="apple", fused_confidence=0.4, freshness_class="uncertain")
+        assert unc_est.remaining_days is None
+        assert unc_est.shelf_life_status == "uncertain"
 
     def test_8_multi_fruit_processing(self):
         """DetectionPipeline process_frame should maintain independent results for multiple fruits."""

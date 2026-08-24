@@ -1,0 +1,224 @@
+{
+  "generated_at": "2026-08-22T17:10:15.716540+00:00",
+  "filesystem_counts": {
+    "Apple_fresh": {
+      "train": 1606,
+      "valid": 344,
+      "test": 345,
+      "total": 2295
+    },
+    "Apple_rotten": {
+      "train": 2201,
+      "valid": 472,
+      "test": 473,
+      "total": 3146
+    },
+    "Grape_fresh": {
+      "train": 144,
+      "valid": 31,
+      "test": 30,
+      "total": 205
+    },
+    "Grape_rotten": {
+      "train": 143,
+      "valid": 31,
+      "test": 30,
+      "total": 204
+    },
+    "Kiwi_fresh": {
+      "train": 0,
+      "valid": 0,
+      "test": 0,
+      "total": 0
+    },
+    "Kiwi_rotten": {
+      "train": 4,
+      "valid": 1,
+      "test": 1,
+      "total": 6
+    },
+    "Mango_fresh": {
+      "train": 0,
+      "valid": 0,
+      "test": 0,
+      "total": 0
+    },
+    "Mango_rotten": {
+      "train": 1,
+      "valid": 1,
+      "test": 1,
+      "total": 3
+    },
+    "Orange_fresh": {
+      "train": 1434,
+      "valid": 309,
+      "test": 307,
+      "total": 2050
+    },
+    "Orange_rotten": {
+      "train": 1366,
+      "valid": 293,
+      "test": 293,
+      "total": 1952
+    },
+    "Strawberry_fresh": {
+      "train": 142,
+      "valid": 30,
+      "test": 31,
+      "total": 203
+    },
+    "Strawberry_rotten": {
+      "train": 142,
+      "valid": 30,
+      "test": 31,
+      "total": 203
+    },
+    "banana_fresh": {
+      "train": 1517,
+      "valid": 325,
+      "test": 327,
+      "total": 2169
+    },
+    "banana_rotten": {
+      "train": 2070,
+      "valid": 445,
+      "test": 444,
+      "total": 2959
+    },
+    "cherry_fresh": {
+      "train": 2,
+      "valid": 1,
+      "test": 1,
+      "total": 4
+    },
+    "cherry_rotten": {
+      "train": 3,
+      "valid": 1,
+      "test": 1,
+      "total": 5
+    },
+    "chickoo_fresh": {
+      "train": 0,
+      "valid": 0,
+      "test": 0,
+      "total": 0
+    },
+    "chickoo_rotten": {
+      "train": 0,
+      "valid": 0,
+      "test": 0,
+      "total": 0
+    },
+    "guava_fresh": {
+      "train": 140,
+      "valid": 30,
+      "test": 30,
+      "total": 200
+    },
+    "guava_rotten": {
+      "train": 140,
+      "valid": 30,
+      "test": 30,
+      "total": 200
+    }
+  },
+  "totals": {
+    "train": 11055,
+    "valid": 2374,
+    "test": 2375,
+    "total": 15804
+  },
+  "metadata_matches_filesystem": true,
+  "manifest_matches_filesystem": true,
+  "manifest_entry_count": 15804,
+  "missing_or_low_classes": [
+    {
+      "class": "Kiwi_fresh",
+      "available": 0,
+      "required": 50,
+      "train": 0,
+      "valid": 0,
+      "test": 0,
+      "status": "DATA COLLECTION REQUIRED",
+      "reason": "zero legitimate images in any local source",
+      "source_gap": true
+    },
+    {
+      "class": "Kiwi_rotten",
+      "available": 6,
+      "required": 50,
+      "train": 4,
+      "valid": 1,
+      "test": 1,
+      "status": "DATA COLLECTION REQUIRED",
+      "reason": "insufficient images (6 < 20)",
+      "source_gap": true
+    },
+    {
+      "class": "Mango_fresh",
+      "available": 0,
+      "required": 50,
+      "train": 0,
+      "valid": 0,
+      "test": 0,
+      "status": "DATA COLLECTION REQUIRED",
+      "reason": "zero legitimate images in any local source",
+      "source_gap": true
+    },
+    {
+      "class": "Mango_rotten",
+      "available": 3,
+      "required": 50,
+      "train": 1,
+      "valid": 1,
+      "test": 1,
+      "status": "DATA COLLECTION REQUIRED",
+      "reason": "insufficient images (3 < 20)",
+      "source_gap": true
+    },
+    {
+      "class": "cherry_fresh",
+      "available": 4,
+      "required": 50,
+      "train": 2,
+      "valid": 1,
+      "test": 1,
+      "status": "DATA COLLECTION REQUIRED",
+      "reason": "insufficient images (4 < 20)",
+      "source_gap": true
+    },
+    {
+      "class": "cherry_rotten",
+      "available": 5,
+      "required": 50,
+      "train": 3,
+      "valid": 1,
+      "test": 1,
+      "status": "DATA COLLECTION REQUIRED",
+      "reason": "insufficient images (5 < 20)",
+      "source_gap": true
+    },
+    {
+      "class": "chickoo_fresh",
+      "available": 0,
+      "required": 50,
+      "train": 0,
+      "valid": 0,
+      "test": 0,
+      "status": "DATA COLLECTION REQUIRED",
+      "reason": "zero legitimate images in any local source",
+      "source_gap": true
+    },
+    {
+      "class": "chickoo_rotten",
+      "available": 0,
+      "required": 50,
+      "train": 0,
+      "valid": 0,
+      "test": 0,
+      "status": "DATA COLLECTION REQUIRED",
+      "reason": "zero legitimate images in any local source",
+      "source_gap": true
+    }
+  ]
+}

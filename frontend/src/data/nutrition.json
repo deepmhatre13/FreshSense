@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "SmartFreshAI nutrition database",
+  "description": "Typical nutrition values per 100g edible portion for the 10 fruits supported by the YOLO detector. Values are NOT inferred from an image; they are static database lookups keyed by detected fruit identity.",
+  "source": "USDA FoodData Central (FDC), release 2024. Typical/average values per 100g edible portion. Used by fruit_database.json where overlapping fields are needed.",
+  "note": "These are typical reference values, not per-item predictions. Each entry is labelled fresh/raw and corresponds to the common grocery form of the fruit.",
+  "unit": "per 100g edible portion",
+  "confidence": "reference-table",
+  "last_updated": "2024",
+  "fruits": {
+    "apple": {
+      "scientific_name": "Malus domestica",
+      "calories_kcal": 52,
+      "carbohydrates_g": 13.8,
+      "fiber_g": 2.4,
+      "protein_g": 0.3,
+      "fat_g": 0.2,
+      "vitamin_c_mg": 4.6,
+      "form": "raw, with skin",
+      "source_ref": "USDA FDC 173944"
+    },
+    "grape": {
+      "scientific_name": "Vitis vinifera",
+      "calories_kcal": 69,
+      "carbohydrates_g": 18.1,
+      "fiber_g": 0.9,
+      "protein_g": 0.7,
+      "fat_g": 0.2,
+      "vitamin_c_mg": 3.2,
+      "form": "raw (red globe)",
+      "source_ref": "USDA FDC 168462"
+    },
+    "kiwi": {
+      "scientific_name": "Actinidia deliciosa",
+      "calories_kcal": 61,
+      "carbohydrates_g": 14.7,
+      "fiber_g": 3.0,
+      "protein_g": 1.1,
+      "fat_g": 0.5,
+      "vitamin_c_mg": 92.7,
+      "form": "raw, green-fleshed",
+      "source_ref": "USDA FDC 168463"
+    },
+    "mango": {
+      "scientific_name": "Mangifera indica",
+      "calories_kcal": 60,
+      "carbohydrates_g": 15.0,
+      "fiber_g": 1.6,
+      "protein_g": 0.8,
+      "fat_g": 0.4,
+      "vitamin_c_mg": 36.4,
+      "form": "raw (Haden/varietal average)",
+      "source_ref": "USDA FDC 168632"
+    },
+    "orange": {
+      "scientific_name": "Citrus sinensis",
+      "calories_kcal": 47,
+      "carbohydrates_g": 11.8,
+      "fiber_g": 2.4,
+      "protein_g": 0.9,
+      "fat_g": 0.1,
+      "vitamin_c_mg": 53.2,
+      "form": "raw, all commercial varieties",
+      "source_ref": "USDA FDC 170211"
+    },
+    "strawberry": {
+      "scientific_name": "Fragaria x ananassa",
+      "calories_kcal": 32,
+      "carbohydrates_g": 7.7,
+      "fiber_g": 2.0,
+      "protein_g": 0.7,
+      "fat_g": 0.3,
+      "vitamin_c_mg": 58.8,
+      "form": "raw, cultivated",
+      "source_ref": "USDA FDC 1103176"
+    },
+    "banana": {
+      "scientific_name": "Musa",
+      "calories_kcal": 89,
+      "carbohydrates_g": 22.8,
+      "fiber_g": 2.6,
+      "protein_g": 1.1,
+      "fat_g": 0.3,
+      "vitamin_c_mg": 8.7,
+      "form": "raw, Cavendish",
+      "source_ref": "USDA FDC 173944"
+    },
+    "cherry": {
+      "scientific_name": "Prunus avium",
+      "calories_kcal": 63,
+      "carbohydrates_g": 16.0,
+      "fiber_g": 2.1,
+      "protein_g": 1.1,
+      "fat_g": 0.2,
+      "vitamin_c_mg": 7.0,
+      "form": "raw, sweet (dark sweet)",
+      "source_ref": "USDA FDC 168530"
+    },
+    "chickoo": {
+      "scientific_name": "Manilkara zapota",
+      "calories_kcal": 83,
+      "carbohydrates_g": 17.8,
+      "fiber_g": 5.3,
+      "protein_g": 0.4,
+      "fat_g": 1.1,
+      "vitamin_c_mg": 15.0,
+      "form": "raw (sapodilla)",
+      "source_ref": "USDA FDC 1077602 (note: limited regional coverage)"
+    },
+    "guava": {
+      "scientific_name": "Psidium guajava",
+      "calories_kcal": 68,
+      "carbohydrates_g": 14.3,
+      "fiber_g": 5.4,
+      "protein_g": 2.5,
+      "fat_g": 1.0,
+      "vitamin_c_mg": 228.1,
+      "form": "raw (pink/red-fleshed)",
+      "source_ref": "USDA FDC 1077598"
+    }
+  }
+}
